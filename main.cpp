@@ -3,18 +3,26 @@
 #include "dbstruct/file_data.h"
 
 int main() {
-    FILE **file;
-    file_open_status status = open_new_file(file, "sdsd.txt");
-    FILE *file1 = *file;
+    int32_t fd = open_file("text.txt");
+
     char as[3];
     as[0] = 'a';
     as[1] = 'a';
     as[2] = 'a';
-    node node1;
 
+    void* data[5];
+//    auto s = read_from_db(fd, 0, data, 5);
+    struct stat* m_stat;
+    uint64_t s = write_into_db(fd, m_stat, 0, as, 3);
+    as[0] = 'b';
+    as[1] = 'b';
+    as[2] = 'b';
+    s = write_into_db(fd, m_stat, 3, as, 3);
+    printf("%d", m_stat->st_size);
+    s = write_into_db(fd, m_stat, m_stat->st_size, as, 3);
+    printf("%d", m_stat->st_size);
 
-
-    file_write_status s = write_to_file(file1, as, sizeof(as));
+    close_file(fd);
 
     return 0;
 }

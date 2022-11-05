@@ -5,74 +5,43 @@
 #ifndef LLP_DATABASE_FILE_UTILS_H
 #define LLP_DATABASE_FILE_UTILS_H
 
+#include <iostream>
+#include <csignal>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include "file_utils.h"
 
-#include <cstdio>
-#include <cinttypes>
 
-/**
- * Статус чтения файла
+/** Записывает буфер данныx в файл по заданному смещению.
+ * @param fd - файловый дескриптор
+ * @param m_stat_buf - информация о файле fd
+ * @param offset - заданное смещение в байтах
+ * @param data - данные записываемые в файл
+ * @param n - счетчик записываемых данных в байтах
+ * @return offset, если запись прошла успешно, 1L в случае неудачи
  */
-enum file_read_status {
-    READ_OK = 0,
-    READ_END_OF_FILE,
-    READ_INVALID
-};
+uint64_t
+write_into_db(const int32_t fd, struct stat *m_stat_buf, const int64_t offset, const void *data, const size_t n);
 
-/**
- * Статус записи в файл
+/** Считывает данные в буфер из файла по заданному смещению.
+ * @param fd - файловый дескриптор
+ * @param offset - заданное смещение в байтах
+ * @param data - буфер, куда будут считаны данные
+ * @param n - счетчик считываемых данных в байтах
+ * @return количество действительно считанных байт, 1 в случае ошибки или 0 при попытке чтения в конце файла
  */
-enum file_write_status {
-    WRITE_OK = 0,
-    WRITE_WRONG_INTEGRITY,
-    WRITE_INVALID
-};
+ssize_t read_from_db(const int32_t fd, const int64_t offset, void *data, const size_t n);
 
-/**
- * Статус открытия файла
+
+/** Открывает файл с заданным названием, если файла с этим названием не существует, то он будет создан.
+ * @param filename - название файла
+ * @return файловый дескриптор открытого файла или -1 в случае ошибки
  */
-enum file_open_status {
-    OPEN_OK = 0,
-    OPEN_FAILED
-};
+int32_t open_file(const char *filename);
 
-/**
- * Прочитать данные из файла
- * @param file файл для чтения
- * @param buffer контейнер, который надо заполнить из файла
- * @return статус чтения
+/** Закрывает файл с заданным файловым дескриптором.
+ * @param fd - файловый дескриптор
  */
-enum file_read_status read_from_file(FILE *file, void *buffer, size_t size);
-
-/**
- * Записать данные в файл
- * @param file файл для записи
- * @param buffer контейнер, который надо записать в файл
- * @return статус записи
- */
-enum file_write_status write_to_file(FILE *file, void *buffer, size_t size);
-
-/**
- * Открытие файла
- * @param file контейнер в который будет записан файловый поток
- * @param filename название файла
- * @return статус открытия
- */
-enum file_open_status open_exist_file(FILE **file, char *filename);
-
-/**
- * Создание файла
- * @param file контейнер в который будет записан файловый поток
- * @param filename название файла
- * @return статус открытия
- */
-enum file_open_status open_new_file(FILE **file, char *filename);
-
-/**
- * Закрытие файла
- * @param file файловый поток
- */
-void close_file(FILE *file);
-
-enum file_open_status open_empty_file(FILE **file, char *filename);
+void close_file(int32_t fd);
 
 #endif //LLP_DATABASE_FILE_UTILS_H
