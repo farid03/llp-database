@@ -8,11 +8,13 @@ write_into_db(const int32_t fd, struct stat *m_stat_buf, const int64_t offset, c
     auto offset1 = lseek(fd, offset, SEEK_SET);
     write(fd, data, n);
     fstat(fd, m_stat_buf);
+
     return offset1;
 }
 
 ssize_t read_from_db(const int32_t fd, const int64_t offset, void *data, const size_t n) {
     lseek(fd, offset, SEEK_SET);
+
     return read(fd, data, n);
 }
 
@@ -21,6 +23,7 @@ int32_t open_file(const char *filename) {
     if (fd == -1) {
         printf("Cannot open file. Errno: %d\n ", errno);
     }
+
     return fd;
 }
 
