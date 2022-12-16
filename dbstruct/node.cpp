@@ -1,7 +1,3 @@
-//
-// Created by farid on 05.11.22.
-//
-
 #include "node.h"
 #include "tree_header.h"
 #include "../file_workers/file_utils.h"
@@ -12,7 +8,7 @@
  * @param offset - заданное смещение в байтах
  * @return struct stat - информация о файле fd
  */
-struct stat write_free_space_struct_to_db(int32_t fd, struct free_space space, int64_t offset) {
+struct stat write_free_space_to_db(int32_t fd, struct free_space space, int64_t offset) {
     struct stat m_stat_buf = {};
     write_into_db(fd, &m_stat_buf, offset, &space, sizeof(space));
 
@@ -31,7 +27,7 @@ struct free_space get_free_space_struct_from_db(int32_t fd, int64_t offset) {
     return space;
 }
 
-/** Возвращает заданное смещение последнего осовобожденного пространства (struct free_space).
+/** Возвращает заданное смещение последнего "осовобожденного пространства" (struct free_space).
  * @param fd - файловый дескриптор
  * @return смещение последнего освобожденного пространства
  */
@@ -55,13 +51,52 @@ int64_t get_last_free_space_offset(int32_t fd) {
  */
 int64_t add_free_space_to_list(int32_t fd, struct node node_to_free) {
     struct free_space last_free_space = get_free_space_struct_from_db(fd, get_last_free_space_offset(fd));
-    struct free_space space = { };
+    struct free_space space = { 0 };
     last_free_space.next = node_to_free.offset;
     space.size = node_to_free.size;
+    write_free_space_to_db(fd, space, node_to_free.offset);
 
     return last_free_space.next;
 }
 
-// TODO написать добавление node в файл по смещению
-// TODO написать добавление node в конец файла
-// TODO написать добавление node в в подоходящий free_space иначе в конец файла
+/** Записывает struct node в файл по заданному смещению.
+ * @param fd - файловый дескриптор
+ * @param node - записываемая структура
+ * @param offset - заданное смещение в байтах
+ * @return struct stat - информация о файле fd
+ */
+struct stat write_node_to_db(int32_t fd, struct node node, int64_t offset) {
+    struct stat m_stat_buf = {};
+    write_into_db(fd, &m_stat_buf, offset, &node, sizeof(node));
+
+    return m_stat_buf;
+}
+
+/** Записывает struct node в первый подходящий по размерам free_space, иначе в конец файла.
+ * @param fd - файловый дескриптор
+ * @param node - записываемая структура
+ * @return struct stat - информация о файле fd
+ */
+struct stat write_node_to_db(int32_t fd, struct node node) {
+    struct tree_header header = get_tree_header_from_db(fd);
+    struct free_space space = header.first_free_space;
+    int64_t space_offset = 0;
+    while (space.next != NULL && space.size < sizeof(node)) {
+        space_offset = space.next;
+        space = get_free_space_struct_from_db(fd, space.next);
+    }
+    if (space_offset != 0 && space.size > sizeof(node)) { // если есть подходящее освобожденное пространство
+        node.size = space.size;
+        return write_node_to_db(fd, node, space_offset);
+    }
+
+    struct stat64 m_stat_buff = {};
+    int64_t offset = fstat64(fd, &m_stat_buff); //TODO переделать под windows
+    if (offset == 0) {
+        offset = m_stat_buff.st_size;
+        return write_node_to_db(fd, node, offset);
+    }
+
+    printf("Error in function write_node_to_db (fstat). Errno: %d\n ", errno);
+    return {};
+}
