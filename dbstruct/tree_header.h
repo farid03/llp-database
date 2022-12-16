@@ -1,7 +1,3 @@
-//
-// Created by farid on 04.12.22.
-//
-
 #ifndef LLP_DATABASE_TREE_HEADER_H
 #define LLP_DATABASE_TREE_HEADER_H
 #include "node.h"
@@ -9,7 +5,6 @@
 struct tree_header {
     node first_node;
     free_space first_free_space;
-
 };
 
 /** Возвращает tree_header файла
