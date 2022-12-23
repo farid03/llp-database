@@ -1,10 +1,19 @@
 #ifndef LLP_DATABASE_TREE_HEADER_H
 #define LLP_DATABASE_TREE_HEADER_H
 #include "node.h"
+#include <unordered_map>
+
+enum data_type {
+    BOOL = 0,
+    INT,
+    FLOAT,
+    STRING
+};
 
 struct tree_header {
     node first_node;
     free_space first_free_space;
+    std::unordered_map<std::string, data_type> value_name_to_type; // schema
 };
 
 /** Возвращает tree_header файла

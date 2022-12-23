@@ -4,15 +4,7 @@
 #include <cstdint>
 #include <string>
 
-enum data_type {
-    BOOL = 0,
-    INT,
-    FLOAT,
-    STRING
-};
-
 struct data { // данные, записанные в node
-    struct data_type; // кажется это тут не должно быть
     std::string data;
 };
 
