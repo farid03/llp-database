@@ -15,7 +15,7 @@ struct tree_header {
     free_space first_free_space;
     int32_t nodes_count; // нужно для генерации id новых узлов
     std::unordered_map<std::string, data_type> value_name_to_type; // schema
-    // id & parrent_id -- обязательные части схемы
+    // parrent_id -- обязательная часть схемы
 };
 
 /** Возвращает tree_header файла
@@ -28,6 +28,6 @@ struct tree_header get_tree_header_from_db(const int32_t fd);
  * @param header - tree_header файла
  * @return struct stat - информация о файле fd
  */
-struct stat set_tree_header_to_db(const int32_t fd, tree_header header);
+struct stat set_tree_header_to_db(const int32_t fd, struct tree_header header);
 
 #endif //LLP_DATABASE_TREE_HEADER_H

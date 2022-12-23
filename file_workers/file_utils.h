@@ -1,7 +1,3 @@
-//
-// Created by farid on 05.11.22.
-//
-
 #ifndef LLP_DATABASE_FILE_UTILS_H
 #define LLP_DATABASE_FILE_UTILS_H
 
