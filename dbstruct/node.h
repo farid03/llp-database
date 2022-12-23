@@ -3,21 +3,17 @@
 
 #include <cstdint>
 #include <string>
-
-struct data { // данные, записанные в node
-    std::string data;
-};
+#include "tree_header.h"
 
 struct node {
     int64_t offset;
-    int64_t parent;
     int64_t prev;
     int64_t next;
     int64_t first_child;
     uint32_t size; // количество памяти, которое реально занимает структура
     // (т.к. она может лежать в свободном пространстве, большем чем ему нужно)
     // TODO задать минимальный размер для структуры
-    struct data;
+    std::unordered_map<std::string, std::pair<data_type, std::string>> data;
 };
 
 struct free_space {

@@ -34,7 +34,7 @@ struct free_space get_free_space_struct_from_db(int32_t fd, int64_t offset) {
 int64_t get_last_free_space_offset(int32_t fd) {
     struct tree_header header = get_tree_header_from_db(fd);
     struct free_space space = header.first_free_space;
-    struct free_space previous_space = { };
+    struct free_space previous_space = { 0 };
     while (space.next != 0) {
         previous_space = space;
         space = get_free_space_struct_from_db(fd, space.next);
@@ -87,6 +87,7 @@ struct stat write_node_to_db(int32_t fd, struct node node) {
     }
     if (space_offset != 0 && space.size > sizeof(node)) { // если есть подходящее освобожденное пространство
         node.size = space.size;
+        node.offset = space_offset;
         return write_node_to_db(fd, node, space_offset);
     }
 
@@ -94,6 +95,7 @@ struct stat write_node_to_db(int32_t fd, struct node node) {
     int64_t offset = fstat64(fd, &m_stat_buff); //TODO переделать под windows
     if (offset == 0) {
         offset = m_stat_buff.st_size;
+        node.offset = offset;
         return write_node_to_db(fd, node, offset);
     }
 
