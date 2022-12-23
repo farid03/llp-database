@@ -13,7 +13,9 @@ enum data_type {
 struct tree_header {
     node first_node;
     free_space first_free_space;
+    int32_t nodes_count; // нужно для генерации id новых узлов
     std::unordered_map<std::string, data_type> value_name_to_type; // schema
+    // id & parrent_id -- обязательные части схемы
 };
 
 /** Возвращает tree_header файла
