@@ -11,23 +11,35 @@ enum data_type {
 };
 
 struct tree_header {
-    node first_node;
-    free_space first_free_space;
-    int32_t nodes_count; // нужно для генерации id новых узлов
-    std::unordered_map<std::string, data_type> value_name_to_type; // schema
-    // parrent_id -- обязательная часть схемы
+    /// Адрес смещения в файле первого документа.
+    int64_t first_node;
+    /// Адрес смещения в файле первого свободного пространства.
+    int64_t first_free_space;
+    /// Количество документов в базе данных, используется для генерации id новых узлов.
+    int32_t nodes_count;
+    /// Реальный занимаемый в памяти размер структуры (с учетом сериализованной схемы).
+    int64_t size;
+    /// map[value_name] = data_type | parrent_id -- обязательная часть схемы.
+    std::unordered_map<std::string, data_type> schema;
 };
 
 /** Возвращает tree_header файла
  * @param fd - файловый дескриптор
  */
-struct tree_header get_tree_header_from_db(const int32_t fd);
+struct tree_header get_tree_header_from_db(int32_t fd);
 
 /** Записывает переданный tree_header в файл
  * @param fd - файловый дескриптор
  * @param header - tree_header файла
- * @return struct stat - информация о файле fd
+ * @return true, в случае успеха, иначе false
  */
-struct stat set_tree_header_to_db(const int32_t fd, struct tree_header header);
+bool set_tree_header_to_db(int32_t fd, struct tree_header header);
 
+/** Инициализирует внутреннюю структуру файла, в котором хранятся данные.
+ * @param fd - файловый дескриптор
+ * @param name_to_type - схема базы данных | map[value_name] = data_type | parrent_id -- обязательная часть схемы.
+ * @return true, в случае успеха, иначе false
+ */
+bool initialize_db(int32_t fd, std::unordered_map<std::string, data_type> &name_to_type,
+                   const std::unordered_map<std::string, std::string> &first_node_data);
 #endif //LLP_DATABASE_TREE_HEADER_H
