@@ -11,7 +11,7 @@ enum command_type {
     DELETE,
 };
 
-
+// TODO подумать над структурой запроса
 struct command {
 
 };

@@ -3,39 +3,38 @@
 
 #include "../dbstruct/tree_header.h"
 
-bool is_valid_int(const std::string &s) {
+inline bool is_valid_int(const std::string &s) {
     size_t offset = 0;
     if (s[offset] == '-')
         ++offset;
     return s.find_first_not_of("0123456789", offset) == std::string::npos;
 }
 
-bool is_valid_float(const std::string &s) {
+inline bool is_valid_float(const std::string &s) {
     size_t offset = 0;
     if (s[offset] == '-')
         ++offset;
     return s.find_first_not_of("0123456789.", offset) == std::string::npos;
 }
-
-bool validate_schema(int32_t fd, const std::unordered_map<std::string, std::pair<data_type, std::string>>& node) {
+//
+// true, в случае успеха, иначе false
+static bool validate_schema(int32_t fd, const std::unordered_map<std::string, std::string> &node_data) {
     struct tree_header header = get_tree_header_from_db(fd);
-    for (const auto& a: node) {
-        if (header.value_name_to_type[a.first] != a.second.first) {
-            return false;
-        }
-        switch (a.second.first) {
+    for (const auto& a: node_data) {
+// нет валидации на названия полей
+        switch (header.schema[a.second]) {
             case BOOL:
-                if (a.second.second != "true" && a.second.second != "false") {
+                if (a.second != "true" && a.second != "false") {
                     return false;
                 }
                 break;
             case INT:
-                if (!is_valid_int(a.second.second)) {
+                if (!is_valid_int(a.second)) {
                     return false;
                 }
                 break;
             case FLOAT:
-                if (!is_valid_float(a.second.second)) {
+                if (!is_valid_float(a.second)) {
                     return false;
                 }
                 break;

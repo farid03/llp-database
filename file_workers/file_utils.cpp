@@ -1,15 +1,16 @@
 #include "file_utils.h"
 
 uint64_t
-write_into_db(const int32_t fd, struct stat *m_stat_buf, const int64_t offset, const void *data, const size_t n) {
+write_into_file(const int32_t fd, const int64_t offset, const void *data, const size_t n) {
     auto offset1 = lseek(fd, offset, SEEK_SET);
     write(fd, data, n);
-    fstat(fd, m_stat_buf);
+    struct stat64 _{};
+    fstat64(fd, &_);
 
     return offset1;
 }
 
-ssize_t read_from_db(const int32_t fd, const int64_t offset, void *data, const size_t n) {
+ssize_t read_from_file(const int32_t fd, const int64_t offset, void *data, const size_t n) {
     lseek(fd, offset, SEEK_SET);
 
     return read(fd, data, n);

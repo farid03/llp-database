@@ -1,39 +1,26 @@
-#include <iostream>
 #include "file_workers/file_utils.h"
-#include "dbstruct/node.h"
+#include "dbstruct/tree_header.h"
+#include <unordered_map>
 
 int main() {
-    int32_t fd = open_file("text.txt");
+    int32_t fd = open_file(".data");
+    std::unordered_map<std::string, data_type> schema = {}; // TODO  возможно не помешают метод создания новых нод на основе схемы
+    schema["name"] = STRING;
+    schema["parent_id"] = INT;
+    schema["age"] = INT;
+    std::unordered_map<std::string, std::string> first_node = {};
+    first_node["name"] = "aboba";
+    first_node["parent_id"] = "-1";
+    first_node["age"] = "13";
 
-    char as[3];
-    as[0] = 'a';
-    as[1] = 'a';
-    as[2] = 'a';
+    bool res = initialize_db(fd, schema, first_node);
+    auto header = get_tree_header_from_db(fd);
+    // во всех методах применяется эвристика, что бд уже валидна, поэтому нужен валидный хедер файла изначально
 
-    auto* m_stat = (struct stat *) malloc(sizeof(struct stat));
-    uint64_t s = write_into_db(fd, m_stat, 0, as, 3);
-    as[0] = 'b';
-    as[1] = 'b';
-    as[2] = 'b';
-    s = write_into_db(fd, m_stat, 3, as, 3);
-    printf("%ld\n", m_stat->st_size);
-    s = write_into_db(fd, m_stat, m_stat->st_size, as, 3);
-    printf("%ld\n", m_stat->st_size);
-
-    void* data[m_stat->st_size];
-    auto b = read_from_db(fd, 0, data, m_stat->st_size);
-
-    printf("%s\n", (char*) data) ;
-
-    close_file(fd);
-
-    struct node n = { };
-    printf("%lu", sizeof(n)) ;
-
-//    нужно сначала проверить что у базы данных есть хедер если есть,
+    // сделать ключ для запуска -- обновить или продолжить в файле
+//    нужно сначала проверить что у базы данных есть хедер, если есть,
 //    то читаем и работаем, если нет,
 //    то создаем хедер и требуемую схему
-//
-//
+
     return 0;
 }
