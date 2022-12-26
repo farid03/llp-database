@@ -1,7 +1,8 @@
 #ifndef LLP_DATABASE_TREE_HEADER_H
 #define LLP_DATABASE_TREE_HEADER_H
-#include "node.h"
+
 #include <unordered_map>
+#include "node.h"
 
 enum data_type {
     BOOL = 0,
@@ -49,4 +50,6 @@ bool set_tree_header_to_db(int32_t fd, struct tree_header header);
  */
 bool initialize_db(int32_t fd, std::unordered_map<std::string, data_type> &name_to_type,
                    const std::unordered_map<std::string, std::string> &first_node_data);
+
+int32_t get_next_node_id(int32_t fd);
 #endif //LLP_DATABASE_TREE_HEADER_H

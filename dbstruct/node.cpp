@@ -1,7 +1,6 @@
 #include "node.h"
-#include "tree_header.h"
 #include "../file_workers/file_utils.h"
-#include "serialization.h"
+#include "../data_process_utils/serialization/serialization.h"
 
 bool write_free_space_to_db(int32_t fd, struct free_space space, int64_t offset) {
     return write_into_file(fd, offset, &space, sizeof(space)) == offset;
@@ -58,11 +57,13 @@ int64_t add_free_space_to_list(int32_t fd, const struct node &node_to_free) {
  * @param node - записываемая структура
  * @param offset - заданное смещение в байтах
  * @return true, в случае успеха, иначе false
+ * @attention валидирует поле size при записи структуры в файл!
  */
 bool write_node_to_db(int32_t fd, struct node node, int64_t offset) {
     auto header_offset = write_into_file(fd, offset, &node, offsetof(struct node, data) - 1);
     auto cfd = open_file(".cache");
     serialize_and_cache_node_data(node.data);
+    node.size = offsetof(struct node, data) - 1 + get_file_size(cfd);
     auto data_offset = move_from_cache_to_db(fd, cfd, offset + offsetof(struct node, data));
 
     return header_offset == offset && data_offset == offset;

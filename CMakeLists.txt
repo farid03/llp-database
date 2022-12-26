@@ -15,5 +15,11 @@ include_directories(
 )
 link_directories(${Boost_LIBRARY_DIR})
 
-add_executable(llp_database main.cpp dbstruct/node.cpp dbstruct/node.h file_workers/file_utils.cpp file_workers/file_utils.h dbstruct/tree_header.cpp dbstruct/tree_header.h commands/commands.cpp commands/commands.h commands/schema_validation.h dbstruct/serialization.h)
+add_executable(llp_database main.cpp
+        dbstruct/node.cpp dbstruct/node.h
+        file_workers/file_utils.cpp file_workers/file_utils.h
+        dbstruct/tree_header.cpp dbstruct/tree_header.h
+        commands/commands.cpp commands/commands.h
+        data_process_utils/validation/schema_validation.h data_process_utils/validation/schema_validation.cpp
+        data_process_utils/serialization/serialization.h data_process_utils/serialization/serialization.cpp)
 target_link_libraries(llp_database PRIVATE ${Boost_LIBRARIES})

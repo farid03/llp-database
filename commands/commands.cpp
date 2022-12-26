@@ -1,21 +1,12 @@
-#include "commands.h"
-#include "../dbstruct/tree_header.h"
 #include <unordered_map>
 #include <list>
-#include <utility>
-#include <sys/stat.h>
-#include "./schema_validation.h"
-
-static int32_t get_next_id(int32_t fd) {
-    struct tree_header header = get_tree_header_without_schema_from_db(fd);
-    header.nodes_count++;
-    set_tree_header_to_db(fd, header);
-
-    return header.nodes_count - 1;
-}
+#include <string>
+#include "../dbstruct/node.h"
+#include "commands.h"
+#include "../data_process_utils/validation/schema_validation.h"
 
 /// абстракция над add_node, будет публичным интерфейсом для работы с бд
-static bool add(const int32_t fd, const std::unordered_map<std::string, std::string> &node_data) {
+bool add(const int32_t fd, const std::unordered_map<std::string, std::string> &node_data) {
     return false;
 }
 /// сделать аналогичные публичные интерфейсы для update find и delete и вынести их в отдельный файл
@@ -28,7 +19,7 @@ static bool add(const int32_t fd, const std::unordered_map<std::string, std::str
  * @param node - новый узел, который нужно добавить | node = map[field_name]: data
  * @return смещение в документе, по которому записана новый узел
  */
-static int64_t add_node(const int32_t fd, const std::unordered_map<std::string, std::string> &node_data, bool is_update) {
+int64_t add_node(const int32_t fd, const std::unordered_map<std::string, std::string> &node_data, bool is_update) {
     // TODO не забыть проинициализировать поля node ->
     //  сообщить листу детей родителя, что появился новый ребенок,
     //  ребенку сгенерировать новый id,
@@ -43,20 +34,20 @@ static int64_t add_node(const int32_t fd, const std::unordered_map<std::string, 
 }
 
 // Реализовать последними
-static std::list<node> *find_node_by_id(const int32_t fd, int32_t id) { return NULL; }
+std::list<node> *find_node_by_id(const int32_t fd, int32_t id) { return NULL; }
 
-static std::list<node> *find_node_by_parent(const int32_t fd, int32_t parent_id) { return NULL; }
+std::list<node> *find_node_by_parent(const int32_t fd, int32_t parent_id) { return NULL; }
 
 // Реализовать первым
-static std::list<node> *find_all(const int32_t fd) { return NULL; }
+std::list<node> *find_all(const int32_t fd) { return NULL; }
 
-static std::list<node> *
+std::list<node> *
 find_node_by_condition(const int32_t fd, std::pair<std::string, std::string> condition) { return NULL; }
 
-static bool delete_node(int32_t fd, int32_t id) {
+bool delete_node(int32_t fd, int32_t id) {
     return false;
 }
 
-static bool update_node(int32_t fd, std::unordered_map<std::string, std::string> node_data) {
+bool update_node(int32_t fd, std::unordered_map<std::string, std::string> node_data) {
     return delete_node(fd, std::stoi(node_data["id"])) && add_node(fd, node_data, true);
 }

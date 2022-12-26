@@ -1,7 +1,14 @@
 #include "tree_header.h"
-#include "../file_workers/file_utils.h"
-#include "../commands/commands.cpp"
-#include "serialization.h"
+#include "../data_process_utils/serialization/serialization.h"
+#include "../commands/commands.h"
+
+int32_t get_next_node_id(int32_t fd) {
+    struct tree_header header = get_tree_header_without_schema_from_db(fd);
+    header.nodes_count++;
+    set_tree_header_to_db(fd, header);
+
+    return header.nodes_count - 1;
+}
 
 struct tree_header get_tree_header_without_schema_from_db(const int32_t fd) {
     struct tree_header header = {0, 0, 0, 0, {}};
@@ -47,6 +54,8 @@ bool initialize_db(int32_t fd, std::unordered_map<std::string, data_type> &name_
     header.nodes_count = 1;
     // в функции add_node происходит валидация первого добавляемого узла схеме
     header.first_node = add_node(fd, first_node_data, false); // TODO не забыть в add_node сгенерировать id для узла
+//    write_node_to_db()
+
     header.first_free_space = 0;
 
     auto cfd = open_file(".cache"); // блок для сериализации

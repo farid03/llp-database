@@ -1,16 +1,14 @@
-#ifndef LLP_DATABASE_SCHEMA_VALIDATION_H
-#define LLP_DATABASE_SCHEMA_VALIDATION_H
+#include "schema_validation.h"
+#include "../../dbstruct/tree_header.h"
 
-#include "../dbstruct/tree_header.h"
-
-inline bool is_valid_int(const std::string &s) {
+bool is_valid_int(const std::string &s) {
     size_t offset = 0;
     if (s[offset] == '-')
         ++offset;
     return s.find_first_not_of("0123456789", offset) == std::string::npos;
 }
 
-inline bool is_valid_float(const std::string &s) {
+bool is_valid_float(const std::string &s) {
     size_t offset = 0;
     if (s[offset] == '-')
         ++offset;
@@ -18,7 +16,7 @@ inline bool is_valid_float(const std::string &s) {
 }
 //
 // true, в случае успеха, иначе false
-static bool validate_schema(int32_t fd, const std::unordered_map<std::string, std::string> &node_data) {
+bool validate_schema(int32_t fd, const std::unordered_map<std::string, std::string> &node_data) {
     struct tree_header header = get_tree_header_from_db(fd);
     for (const auto& a: node_data) {
 // нет валидации на названия полей
@@ -46,5 +44,3 @@ static bool validate_schema(int32_t fd, const std::unordered_map<std::string, st
 
     return true;
 }
-
-#endif // LLP_DATABASE_SCHEMA_VALIDATION_H

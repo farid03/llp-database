@@ -3,15 +3,14 @@
 
 #include <cstdint>
 #include <string>
-#include "tree_header.h"
 #include <unordered_map>
 
 struct node {
-    int64_t offset;
-    int64_t id;
-    int64_t prev;
-    int64_t next;
-    int64_t first_child;
+    int64_t offset; // АДРЕС В ФАЙЛЕ
+    int64_t id; // АДРЕС В ФАЙЛЕ
+    int64_t prev;   // АДРЕС В ФАЙЛЕ
+    int64_t next;   // АДРЕС В ФАЙЛЕ
+    int64_t first_child;    // АДРЕС В ФАЙЛЕ
     uint64_t size;
     uint64_t r_size; // количество памяти, которое реально занимает структура (блок памяти)
     // (т.к. она может лежать в свободном пространстве, большем чем ему нужно)
@@ -36,7 +35,8 @@ int64_t add_free_space_to_list(int32_t fd, const struct node& node_to_free);
  * @param fd - файловый дескриптор
  * @param node - записываемая структура
  * @return offset, если запись прошла успешно, 1L в случае неудачи
- * @attention Не забыть записать в node.size полный размер структуры (вместе с частью сериализ) и указать id структуры!
+ * @details Валидирует поля offset, node.size и r_size при записи в файл.
+ * @attention Не забыть указать id структуры!
  * @attention Связи и ссылки других узлов на переданную структуру должны валидироваться вне этого метода!
  */
 int64_t write_node_to_db(int32_t fd, struct node node);
