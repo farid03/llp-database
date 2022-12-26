@@ -28,16 +28,18 @@ struct free_space {
  * место структуры node структуру освобожденного пространства.
  * @param fd - файловый дескриптор
  * @param node_to_free - перезаписываемая (освобождаемая) структура
- * @return смещение записанной структуры в файле
+ * @return offset, если запись прошла успешно, 1L в случае неудачи
  */
 int64_t add_free_space_to_list(int32_t fd, const struct node& node_to_free);
 
 /** Записывает struct node в первый подходящий по размерам free_space, иначе в конец файла.
  * @param fd - файловый дескриптор
  * @param node - записываемая структура
- * @return true, в случае успеха, иначе false
+ * @return offset, если запись прошла успешно, 1L в случае неудачи
+ * @attention Не забыть записать в node.size полный размер структуры (вместе с частью сериализ) и указать id структуры!
+ * @attention Связи и ссылки других узлов на переданную структуру должны валидироваться вне этого метода!
  */
-bool write_node_to_db(int32_t fd, struct node node);
+int64_t write_node_to_db(int32_t fd, struct node node);
 
 /** Записывает struct free_space в файл по заданному смещению.
  * @param fd - файловый дескриптор
@@ -47,7 +49,18 @@ bool write_node_to_db(int32_t fd, struct node node);
  */
 bool write_free_space_to_db(int32_t fd, struct free_space space, int64_t offset);
 
-struct node read_node_from_db(int32_t fd, int64_t offset);
+/** Считывает struct node из файлf по заданному смещению.
+ * @param fd - файловый дескриптор
+ * @param offset - заданное смещение в байтах
+ * @return struct node - считанная структура
+ */
 struct node read_node_header_from_db(int32_t fd, int64_t offset);
-struct node read_node_data_from_db(int32_t fd, int64_t offset);
+
+/** Считывает struct node из файлf по заданному смещению.
+ * @param fd - файловый дескриптор
+ * @param offset - заданное смещение в байтах
+ * @return struct node - считанная структура
+ */
+struct node read_node_from_db(int32_t fd, int64_t offset);
+
 #endif //LLP_DATABASE_NODE_H

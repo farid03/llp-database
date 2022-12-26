@@ -3,12 +3,6 @@
 #include "../file_workers/file_utils.h"
 #include "serialization.h"
 
-/** Записывает struct free_space в файл по заданному смещению.
- * @param fd - файловый дескриптор
- * @param free_space - записываемая структура
- * @param offset - заданное смещение в байтах
- * @return true, в случае успеха, иначе false
- */
 bool write_free_space_to_db(int32_t fd, struct free_space space, int64_t offset) {
     return write_into_file(fd, offset, &space, sizeof(space)) == offset;
 }
@@ -44,12 +38,6 @@ int64_t get_last_free_space_offset(int32_t fd) {
     return previous_space.next;
 }
 
-/** Добавляет struct free_space в связный список освобожденных пространств (struct free_space) в файле и записывает в
- * место структуры node структуру освобожденного пространства.
- * @param fd - файловый дескриптор
- * @param node_to_free - перезаписываемая (освобождаемая) структура
- * @return смещение записанной структуры в файле
- */
 int64_t add_free_space_to_list(int32_t fd, const struct node &node_to_free) {
     auto last_free_space_offset = get_last_free_space_offset(fd);
     struct free_space space = {0};
@@ -80,14 +68,7 @@ bool write_node_to_db(int32_t fd, struct node node, int64_t offset) {
     return header_offset == offset && data_offset == offset;
 }
 
-/** Записывает struct node в первый подходящий по размерам free_space, иначе в конец файла.
- * @param fd - файловый дескриптор
- * @param node - записываемая структура
- * @return true, в случае успеха, иначе false
- * @attention Не забыть записать в node.size полный размер структуры (вместе с частью сериализ) и указать id структуры!
- */
-// TODO требует модификации (сериализация + отсутсвтвие free space)
-bool write_node_to_db(int32_t fd, struct node node) {
+int64_t write_node_to_db(int32_t fd, struct node node) {
     struct tree_header header = get_tree_header_without_schema_from_db(fd);
     struct free_space space = { 0 };
     int64_t space_offset = 0;
@@ -96,33 +77,44 @@ bool write_node_to_db(int32_t fd, struct node node) {
     }
 
     space = get_free_space_struct_from_db(fd, header.first_free_space);
-    while (space.next != 0 && space.size < sizeof(node)) {
+    while (space.next != 0 && space.size < sizeof(node)) { // поиск первого подходящего пространства
         space_offset = space.next;
         space = get_free_space_struct_from_db(fd, space.next);
     }
+
     if (space_offset != 0 && space.size > sizeof(node)) { // если есть подходящее освобожденное пространство
         node.r_size = space.size;
         node.offset = space_offset;
-        return write_node_to_db(fd, node, space_offset) == space_offset;
+        if (!write_node_to_db(fd, node, space_offset)) {
+            printf("Error in write_node_to_db! (1)\n");
+            return 1;
+        }
+
+        return space_offset;
     } else if (space.size > sizeof(node)) { // если это единственное освобожд пространство и оно подходит нам
         space_offset = header.first_free_space;
         header.first_free_space = 0;
         node.r_size = space.size;
         node.offset = space_offset;
-        return write_node_to_db(fd, node, space_offset) == space_offset;
+        if (!write_node_to_db(fd, node, space_offset)) {
+            printf("Error in write_node_to_db! (2)\n");
+            return 1;
+        }
+
+        return space_offset;
     }
 
     write_node_to_eof: // если нет подходящих пространств и нужно записать ноду в конец файла
     int64_t offset = get_file_size(fd);
     node.offset = offset;
-    return write_node_to_db(fd, node, offset) == node.offset;
+    if (!write_node_to_db(fd, node, offset)) {
+        printf("Error in write_node_to_db! (3)\n");
+        return 1;
+    }
+
+    return node.offset;
 }
 
-/** Считывает struct node из файлf по заданному смещению.
- * @param fd - файловый дескриптор
- * @param offset - заданное смещение в байтах
- * @return struct node - считанная структура
- */
 struct node read_node_header_from_db(int32_t fd, int64_t offset) {
     struct node result = {0};
     read_from_file(fd, offset, &result, offsetof(node, data) - 1);
@@ -130,11 +122,6 @@ struct node read_node_header_from_db(int32_t fd, int64_t offset) {
     return result;
 }
 
-/** Считывает struct node из файлf по заданному смещению.
- * @param fd - файловый дескриптор
- * @param offset - заданное смещение в байтах
- * @return struct node - считанная структура
- */
 struct node read_node_from_db(int32_t fd, int64_t offset) {
     struct node result = read_node_header_from_db(fd, offset);
     result.data = deserialize_node_data(fd, offset, result.size);
