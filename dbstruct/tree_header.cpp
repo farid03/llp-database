@@ -3,9 +3,15 @@
 #include "../commands/commands.cpp"
 #include "serialization.h"
 
-struct tree_header get_tree_header_from_db(const int32_t fd) {
+struct tree_header get_tree_header_without_schema_from_db(const int32_t fd) {
     struct tree_header header = {0, 0, 0, 0, {}};
     read_from_file(fd, 0, &header, offsetof(tree_header, schema) - 1);
+
+    return header;
+}
+
+struct tree_header get_tree_header_from_db(const int32_t fd) {
+    auto header = get_tree_header_without_schema_from_db(fd);
     header.schema = deserialize_file_header_schema(fd, header.size);
 
     return header;
@@ -39,17 +45,16 @@ bool initialize_db(int32_t fd, std::unordered_map<std::string, data_type> &name_
         }
     }
     header.nodes_count = 1;
-    header.first_node = add_node(fd, first_node_data, false);
+    // в функции add_node происходит валидация первого добавляемого узла схеме
+    header.first_node = add_node(fd, first_node_data, false); // TODO не забыть в add_node сгенерировать id для узла
+    header.first_free_space = 0;
 
     auto cfd = open_file(".cache"); // блок для сериализации
     serialize_and_cache_file_header(name_to_type);
     move_from_cache_to_db(fd, cfd, offsetof(tree_header, schema));
 
     header.size = offsetof(tree_header, schema) + get_cache_size(cfd) - 1; // валидируем размер хедера файла с учетом сериализованной схемы
-    auto first_node = read_node_header_from_db(fd, header.first_node);
-    header.first_free_space = int64_t(first_node.offset + first_node.size + 1); // создаем искуственно первую пустую ноду
     set_tree_header_to_db(fd, header);
-    write_free_space_to_db(fd, space, header.first_free_space); // возможно выйдет обойтись без этого приема, если обработать отсутствие пустой ноды в файле при вставках
 
     return true;
 }

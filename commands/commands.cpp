@@ -7,7 +7,7 @@
 #include "./schema_validation.h"
 
 static int32_t get_next_id(int32_t fd) {
-    struct tree_header header = get_tree_header_from_db(fd);
+    struct tree_header header = get_tree_header_without_schema_from_db(fd);
     header.nodes_count++;
     set_tree_header_to_db(fd, header);
 
