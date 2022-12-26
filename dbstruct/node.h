@@ -8,11 +8,12 @@
 
 struct node {
     int64_t offset;
+    int64_t id;
     int64_t prev;
     int64_t next;
     int64_t first_child;
     uint64_t size;
-    uint64_t r_size; // количество памяти, которое реально занимает структура
+    uint64_t r_size; // количество памяти, которое реально занимает структура (блок памяти)
     // (т.к. она может лежать в свободном пространстве, большем чем ему нужно)
     // TODO задать минимальный размер для структуры
     std::unordered_map<std::string, std::string> data;
