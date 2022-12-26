@@ -113,16 +113,9 @@ bool write_node_to_db(int32_t fd, struct node node) {
     }
 
     write_node_to_eof: // если нет подходящих пространств и нужно записать ноду в конец файла
-    struct stat64 m_stat_buff = {};
-    int64_t offset = fstat64(fd, &m_stat_buff); //TODO переделать под windows
-    if (offset == 0) {
-        offset = m_stat_buff.st_size;
-        node.offset = offset;
-        return write_node_to_db(fd, node, offset) == node.offset;
-    }
-
-    printf("Error in function write_node_to_db (fstat). Errno: %d\n ", errno);
-    return false;
+    int64_t offset = get_file_size(fd);
+    node.offset = offset;
+    return write_node_to_db(fd, node, offset) == node.offset;
 }
 
 /** Считывает struct node из файлf по заданному смещению.

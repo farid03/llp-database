@@ -53,7 +53,7 @@ bool initialize_db(int32_t fd, std::unordered_map<std::string, data_type> &name_
     serialize_and_cache_file_header(name_to_type);
     move_from_cache_to_db(fd, cfd, offsetof(tree_header, schema));
 
-    header.size = offsetof(tree_header, schema) + get_cache_size(cfd) - 1; // валидируем размер хедера файла с учетом сериализованной схемы
+    header.size = offsetof(tree_header, schema) + get_file_size(cfd) - 1; // валидируем размер хедера файла с учетом сериализованной схемы
     set_tree_header_to_db(fd, header);
 
     return true;

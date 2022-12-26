@@ -25,6 +25,15 @@ int32_t open_file(const char *filename) {
     return fd;
 }
 
+size_t get_file_size(const int32_t fd) {
+    struct stat64 file_stat = {0}; // TODO возможно, придется переделывать под windows
+    if (fstat64(fd, &file_stat) != 0) {
+        printf("Cannot get file stat. Errno: %d\n ", errno);
+    }
+
+    return file_stat.st_size;
+}
+
 void close_file(int32_t fd) {
     close(fd);
 }

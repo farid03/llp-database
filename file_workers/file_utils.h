@@ -39,4 +39,9 @@ int32_t open_file(const char *filename);
  */
 void close_file(int32_t fd);
 
+/** Возвращает размер файла.
+ * @param fd - файловый дескриптор
+ */
+size_t get_file_size(int32_t fd);
+
 #endif //LLP_DATABASE_FILE_UTILS_H
