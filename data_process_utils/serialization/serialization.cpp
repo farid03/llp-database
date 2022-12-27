@@ -1,8 +1,12 @@
 #include "serialization.h"
+#include "../../dbstruct/node.h"
+#include "../../file_workers/file_utils.h"
 
 std::unordered_map<std::string, data_type> deserialize_file_header_schema(int32_t fd, int64_t header_size) {
-    auto size = header_size - offsetof(tree_header, schema);
+    auto size = header_size - offsetof(tree_header, schema) + 1;
     auto buff = malloc(size);
+    std::fstream clear_file(".cache", std::ios::out); // очищаем файл
+    clear_file.close(); // todo проверить, возможно, выйдет обойтись без предварительной очистки
     auto cfd = open_file(".cache");
 
     read_from_file(fd, offsetof(tree_header, schema), buff, size);
@@ -35,13 +39,15 @@ uint64_t move_from_cache_to_db(int32_t fd, int32_t cached_fd, int64_t file_move_
 }
 
 std::unordered_map<std::string, std::string> deserialize_node_data(int32_t fd, int64_t node_offset, int64_t node_size) {
-    auto offset = node_offset + offsetof(node, data);
-    auto size = node_size - offsetof(node, data);
+    auto serial_offset = node_offset + offsetof(node, data);
+    auto size = node_size - offsetof(node, data) + 1;
     auto buff = malloc(size);
+    std::fstream clear_file(".cache", std::ios::out); // очищаем файл TODO проверить на необходимость
+    clear_file.close();
     auto cfd = open_file(".cache");
 
-    read_from_file(fd, offset, buff, size);
-    write_into_file(cfd, offset, buff, size); // записываем десериалиуемый контейнер из бд в кэш
+    read_from_file(fd, serial_offset, buff, size);
+    write_into_file(cfd, 0, buff, size); // записываем десериалиуемый контейнер из бд в кэш
     std::ifstream ifs(".cache"); // десериализуем
     boost::archive::text_iarchive ia(ifs);
     std::unordered_map<std::string, std::string> value_to_data = {};

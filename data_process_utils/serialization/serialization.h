@@ -6,7 +6,6 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <fstream>
 #include "../../dbstruct/tree_header.h"
-#include "../../file_workers/file_utils.h"
 
 /** Десериализует схему данных указанную в заголовочной структуре файла.
  * @param fd - файловый дескриптор
