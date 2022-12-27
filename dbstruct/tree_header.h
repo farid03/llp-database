@@ -2,7 +2,16 @@
 #define LLP_DATABASE_TREE_HEADER_H
 
 #include <unordered_map>
-#include "node.h"
+#include <set>
+#include <cstdint>
+#include <string>
+
+extern struct index idx;
+
+struct index {
+    std::unordered_map<int64_t, int64_t> id_to_offset = {};
+    std::unordered_map<int64_t, std::set<int64_t>> parent_to_childs = {};
+};
 
 enum data_type {
     BOOL = 0,
@@ -44,12 +53,16 @@ bool set_tree_header_to_db(int32_t fd, struct tree_header header);
 
 /** Инициализирует внутреннюю структуру файла, в котором хранятся данные.
  * @param fd - файловый дескриптор
- * @param name_to_type - схема базы данных | map[value_name] = data_type | parrent_id -- обязательная часть схемы.
- * @return true, в случае успеха, иначе false
+ * @param name_to_type - схема базы данных | map[value_name] = data_type
+ * @return файловый дескриптор в котором будет инициализирована структура данных, -1 в случае ошибки
  * @attention схема данных задается один раз при инициализации модуля хранения данных и не подлежит изменению
  */
-bool initialize_db(int32_t fd, std::unordered_map<std::string, data_type> &name_to_type,
+int32_t initialize_db(const char *file_name, std::unordered_map<std::string, data_type> &name_to_type,
                    const std::unordered_map<std::string, std::string> &first_node_data);
-
+// TODO add descriptions
 int32_t get_next_node_id(int32_t fd);
+bool add_node_to_index(int64_t id, int64_t parent_id,int64_t offset);
+bool remove_node_from_index(int64_t id, int64_t parent_id);
+bool initialize_index(int32_t fd);
+struct index get_idx();
 #endif //LLP_DATABASE_TREE_HEADER_H

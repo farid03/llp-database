@@ -1,6 +1,12 @@
+#include <stack>
+#include <fstream>
 #include "tree_header.h"
+#include "../data_process_utils/validation/schema_validation.h"
 #include "../data_process_utils/serialization/serialization.h"
-#include "../commands/commands.h"
+#include "node.h"
+#include "../file_workers/file_utils.h"
+
+struct index idx = {};
 
 int32_t get_next_node_id(int32_t fd) {
     struct tree_header header = get_tree_header_without_schema_from_db(fd);
@@ -28,16 +34,14 @@ bool set_tree_header_to_db(const int32_t fd, tree_header header) {
     return write_into_file(fd, 0, &header, offsetof(tree_header, schema) - 1) == 0;
 }
 
-bool initialize_db(int32_t fd, std::unordered_map<std::string, data_type> &name_to_type,
-                   const std::unordered_map<std::string, std::string> &first_node_data) {
+int32_t initialize_db(const char *file_name, std::unordered_map<std::string, data_type> &name_to_type,
+                      const std::unordered_map<std::string, std::string> &first_node_data) {
+    int32_t fd = open_file(file_name);
+    std::fstream clear_file(file_name, std::ios::out); // очищаем файл
+    clear_file.close();
     struct tree_header header = {0};
     struct free_space space = {0};
     space.size = 256;
-
-    if (name_to_type["parent_id"] != INT) {
-        printf("Cannot find parent_id in schema!\n");
-        return false;
-    }
 
     for (const auto &schema_elem: name_to_type) {
         switch (schema_elem.second) {
@@ -48,13 +52,22 @@ bool initialize_db(int32_t fd, std::unordered_map<std::string, data_type> &name_
                 continue;
             default:
                 printf("Invalid schema type!\n");
-                return false;
+                return -1;
         }
     }
     header.nodes_count = 1;
     // в функции add_node происходит валидация первого добавляемого узла схеме
-    header.first_node = add_node(fd, first_node_data, false); // TODO не забыть в add_node сгенерировать id для узла
-//    write_node_to_db()
+    struct node first_node = {
+            0, // задается в write_node_to_db
+            get_next_node_id(fd),
+            0, // это нулевая нода, родитель отсутствует
+            0, // prev
+            0, // next
+            0, // first_child
+            0, // size задается в write_node_to_db
+            0, // r_size задается в write_node_to_db
+            first_node_data
+    };
 
     header.first_free_space = 0;
 
@@ -63,8 +76,89 @@ bool initialize_db(int32_t fd, std::unordered_map<std::string, data_type> &name_
     move_from_cache_to_db(fd, cfd, offsetof(tree_header, schema));
 
     header.size = offsetof(tree_header, schema) + get_file_size(cfd) - 1; // валидируем размер хедера файла с учетом сериализованной схемы
+    set_tree_header_to_db(fd, header); // записываем чтобы записываемая первая нода нашла себе валидный адрес в конце файла
+    if (!validate_node_by_schema(fd, first_node_data)) {
+        return -1;
+    }
+    header.first_node = write_node_to_db(fd, first_node); // TODO нужна валидация данных по схеме перед записью
     set_tree_header_to_db(fd, header);
+
+    idx.id_to_offset[first_node.id] = header.first_node; // заменить на вызов функции полной инициализации индексов
+    idx.parent_to_childs[first_node.id] = std::set<int64_t>();
+    // TODO не забыть про инициализацию индексов
+    return fd;
+}
+
+struct index get_idx() {
+    return idx;
+}
+
+/// --- TODO ---
+bool add_node_to_index(int64_t id, int64_t parent_id, int64_t offset) {
+//    idx.id_to_offset[id] = offset;
+//    idx.parent_to_childs[parent_id].emplace(id);
+//    return true;
+
+    // FIXME debug version
+    if (idx.id_to_offset.count(id) != 0) {
+        printf("Element already exists in index!\n");
+        return false;
+    } else {
+        idx.id_to_offset[id] = offset;
+        idx.parent_to_childs[id] = {};
+    }
+
+    if (idx.parent_to_childs.count(parent_id) == 0) {
+        printf("Element parent_id not exists in index!\n");
+        return false;
+    } else {
+        idx.parent_to_childs[parent_id].emplace(id);
+    }
 
     return true;
 }
 
+bool remove_node_from_index(int64_t id, int64_t parent_id) {
+//    idx.id_to_offset.erase(id);
+//    idx.parent_to_childs[parent_id].erase(id);
+//    return true;
+
+    // FIXME debug version
+    if (idx.id_to_offset.count(id) == 0) {
+        printf("Element not exists in index!\n");
+        return false;
+    } else {
+        idx.id_to_offset.erase(id);
+        idx.parent_to_childs.erase(id);
+    }
+
+    if (idx.parent_to_childs.count(parent_id) == 0) {
+        printf("Element parent_id not exists in index!\n");
+        return false;
+    } else {
+        if (idx.parent_to_childs[parent_id].count(id) == 0) {
+            printf("Element not exists in index.parent_to_childs!\n");
+            return false;
+        } else {
+            idx.parent_to_childs[parent_id].erase(id);
+        }
+    }
+
+    return true;
+
+}
+
+// TODO ---
+bool initialize_index(int32_t fd) {
+    return true;
+
+    auto header = get_tree_header_without_schema_from_db(fd);
+    std::stack<int64_t> s = {};
+    s.push(header.first_node);
+    while (!s.empty()) {
+        auto c_node_offset = s.top();
+        auto node = read_node_header_from_db(fd, c_node_offset);
+        add_node_to_index(node.id, node.parent_id, node.offset);
+    }
+    return false;
+}
