@@ -1,24 +1,28 @@
 #include <unordered_map>
-#include "file_workers/file_utils.h"
 #include "dbstruct/tree_header.h"
 #include "commands/commands.h"
+#include "dbstruct/node.h"
 
 int main() {
-    int32_t fd = open_file(".data");
+
     std::unordered_map<std::string, data_type> schema = {}; // TODO возможно не помешают метод создания новых нод на основе схемы
     schema["name"] = STRING;
-    schema["parent_id"] = INT;
     schema["age"] = INT;
     std::unordered_map<std::string, std::string> first_node = {};
     first_node["name"] = "aboba";
-    first_node["parent_id"] = "-1";
     first_node["age"] = "13";
 
-    bool res = initialize_db(fd, schema, first_node);
+    auto fd = initialize_db(".data", schema, first_node);  // FIXME запретить удаление и изменения нулевой ноды
     auto header = get_tree_header_from_db(fd);
-    struct node n = {0, get_next_node_id(fd), 0, 0, 0, 0, 0, first_node};
-    auto offset = write_node_to_db(fd, n);
-    auto nde = read_node_from_db(fd, offset);
+
+    std::unordered_map<std::string, std::string> first_node2 = {};
+    first_node2["name"] = "aboba2";
+    first_node2["age"] = "2222";
+    // TODO возможно стоит поменять у add_node возвращаемое значение на id добавленной ноды
+    auto id = add_node(fd, 0, first_node2); // FIXME неправильны id_to_offset
+    auto nde = read_node_from_db(fd, header.first_node);
+    // TODO написать функции для работы с индексами
+    nde = read_node_from_db(fd, nde.first_child);
     // во всех методах применяется эвристика, что бд уже валидна, поэтому нужен валидный хедер файла изначально
 
     // TODO проверить работоспособность методов для записи и чтения struct node
@@ -27,6 +31,5 @@ int main() {
 //    нужно сначала проверить что у базы данных есть хедер, если есть,
 //    то читаем и работаем, если нет,
 //    то создаем хедер и требуемую схему
-
     return 0;
 }
