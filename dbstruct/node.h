@@ -6,15 +6,24 @@
 #include <unordered_map>
 
 struct node {
+    /// Задается при записи в файл write_node_to_db
     int64_t offset; // АДРЕС В ФАЙЛЕ
+    /// Задается в add_node
     int64_t id; // АДРЕС В ФАЙЛЕ
+    /// Задается в add_node
+    int64_t parent_id; // АДРЕС В ФАЙЛЕ
+    /// Задается в add_node
     int64_t prev;   // АДРЕС В ФАЙЛЕ
+    /// Задается в add_node (0 для новых нод) // тк новая нода записывается в конец бамбука детей
     int64_t next;   // АДРЕС В ФАЙЛЕ
+    /// Задается в add_node (0 для новых нод)
     int64_t first_child;    // АДРЕС В ФАЙЛЕ
+    /// Задается при записи в файл write_node_to_db
     uint64_t size;
+    /// Задается при записи в файл write_node_to_db
     uint64_t r_size; // количество памяти, которое реально занимает структура (блок памяти)
     // (т.к. она может лежать в свободном пространстве, большем чем ему нужно)
-    // TODO задать минимальный размер для структуры
+    /// Задается и валидируется в add_node
     std::unordered_map<std::string, std::string> data;
 };
 
@@ -40,6 +49,15 @@ int64_t add_free_space_to_list(int32_t fd, const struct node& node_to_free);
  * @attention Связи и ссылки других узлов на переданную структуру должны валидироваться вне этого метода!
  */
 int64_t write_node_to_db(int32_t fd, struct node node);
+
+/** Записывает struct node в файл по заданному смещению.
+ * @param fd - файловый дескриптор
+ * @param node - записываемая структура
+ * @param offset - заданное смещение в байтах
+ * @return true, в случае успеха, иначе false
+ * @attention валидирует поле size при записи структуры в файл!
+ */
+bool write_node_to_db(int32_t fd, struct node node, int64_t offset);
 
 /** Записывает struct free_space в файл по заданному смещению.
  * @param fd - файловый дескриптор
