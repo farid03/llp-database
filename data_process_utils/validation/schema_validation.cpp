@@ -3,24 +3,32 @@
 
 bool is_valid_int(const std::string &s) {
     size_t offset = 0;
-    if (s[offset] == '-')
+    if (s[offset] == '-') {
         ++offset;
+    }
     return s.find_first_not_of("0123456789", offset) == std::string::npos;
 }
 
 bool is_valid_float(const std::string &s) {
     size_t offset = 0;
-    if (s[offset] == '-')
+    if (s[offset] == '-') {
         ++offset;
+    }
     return s.find_first_not_of("0123456789.", offset) == std::string::npos;
 }
 //
 // true, в случае успеха, иначе false
-bool validate_schema(int32_t fd, const std::unordered_map<std::string, std::string> &node_data) {
+bool validate_node_by_schema(int32_t fd, const std::unordered_map<std::string, std::string> &node_data) {
     struct tree_header header = get_tree_header_from_db(fd);
+    if (node_data.size() != header.schema.size()) { // валидиуем количество полей
+        return false;
+    }
+
     for (const auto& a: node_data) {
-// нет валидации на названия полей
-        switch (header.schema[a.second]) {
+        if (header.schema.count(a.first) != 1) { // валидируем название полей ноды по схеме, названия уникальны (map)
+            return false;
+        }
+        switch (header.schema[a.first]) {
             case BOOL:
                 if (a.second != "true" && a.second != "false") {
                     return false;
@@ -37,6 +45,7 @@ bool validate_schema(int32_t fd, const std::unordered_map<std::string, std::stri
                 }
                 break;
             case STRING:
+                break;
             default:
                 return false;
         }
