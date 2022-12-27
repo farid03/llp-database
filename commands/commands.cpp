@@ -10,15 +10,9 @@
  * @param node - новый узел, который нужно добавить | node = map[field_name]: data
  * @return возвращает id записанного узла, -1 в случае неудачи
  */
-// TODO реализовать первым и протестировать работу
 int64_t add_node(const int32_t fd, int64_t parent_id, const std::unordered_map<std::string, std::string> &node_data) {
-    // TODO не забыть проинициализировать поля node ->
-    //  сообщить листу детей родителя, что появился новый ребенок,
-    //  ребенку сгенерировать новый id,
-    //  offset, size, r_size будут заданы дальше, при записи
-    // TODO не забыть сохранить предыдущие данные (id, parrent_id, лист родителей
-    //  возможно, стоит разделить логику update и add
     if (!validate_node_by_schema(fd, node_data)) {
+        printf("Invalid node_data. Field must be match the schema!\n");
         return -1;
     }
     struct node node = { 0 };
@@ -26,9 +20,10 @@ int64_t add_node(const int32_t fd, int64_t parent_id, const std::unordered_map<s
     node.parent_id = parent_id;
     node.data = node_data;
     int64_t node_offset = 0;
+    //  offset, size, r_size будут заданы дальше, при записи
 
     if (!idx.parent_to_childs[parent_id].empty()) { // если у родителя есть уже другие дети
-         auto last_parent_child = idx.parent_to_childs[parent_id].end();
+         auto last_parent_child = idx.parent_to_childs[parent_id].end(); // добавим в лист родителя нового ребенка
          node.prev = *(--last_parent_child);
         node_offset = write_node_to_db(fd, node);
     } else {
@@ -36,7 +31,7 @@ int64_t add_node(const int32_t fd, int64_t parent_id, const std::unordered_map<s
         auto parent_node = read_node_from_db(fd, idx.id_to_offset[parent_id]);
         parent_node.first_child = node_offset;
         if (!write_node_to_db(fd, parent_node, parent_node.offset)) {
-            printf("Error in write_node_to_db! Rewriting parent node in function add!");
+            printf("Error in write_node_to_db! Rewriting parent node in function add!\n");
             return -1;
         }
     }
