@@ -4,7 +4,6 @@
 #include "../dbstruct/tree_header.h"
 #include "../dbstruct/node.h"
 
-// TODO подумать надо ли делать in-memory индексы для быстрого доступа к нодам. надо.
 /** Добавляет новый документ в дерево.
  * @param fd - файловый дескриптор
  * @param node - новый узел, который нужно добавить | node = map[field_name]: data
@@ -40,20 +39,45 @@ int64_t add_node(const int32_t fd, int64_t parent_id, const std::unordered_map<s
     return node.id;
 }
 
-// Реализовать последними
-std::unordered_map<std::string, std::string> *find_node_by_id(const int32_t fd, int32_t id) { return NULL; }
-
-std::list<std::unordered_map<std::string, std::string>> *find_node_by_parent(const int32_t fd, int32_t parent_id) {
-    return NULL;
+// не тестировалась
+std::unordered_map<std::string, std::string> find_node_by_id(const int32_t fd, int32_t id) {
+    if (idx.id_to_offset.count(id) == 0) {
+        printf("Node with such an id doesn't exist!\n");
+        return {};
+    }
+    return read_node_from_db(fd, idx.id_to_offset[id]).data; // добавить поля id и parent_od
 }
 
-// TODO Реализовать вторым и узнать насколько разумен такой формат возврата результатов
-std::list<std::unordered_map<std::string, std::string>> *find_all(const int32_t fd) { return NULL; }
+// не тестировалась
+std::list<std::unordered_map<std::string, std::string>> find_node_by_parent(const int32_t fd, int32_t parent_id) {
+    std::list<std::unordered_map<std::string, std::string>> result{};
+    if (idx.parent_to_childs.count(parent_id) == 0) {
+        printf("Node with such a parent_id doesn't exist!\n");
+        return {};
+    }
 
-std::list<std::unordered_map<std::string, std::string>> *
-find_node_by_condition(const int32_t fd, std::pair<std::string, std::string> condition) { return NULL; }
+    for (auto id: idx.parent_to_childs[parent_id]) {
+        if (idx.id_to_offset.count(id) == 0) { // невозможно, конечно, но пусть будет
+            printf("Node with such an id doesn't exist!\n");
+        }
+        result.emplace_back(read_node_from_db(fd, idx.id_to_offset[id]).data); // добавить поля id и parent_id
+    }
+
+    return result;
+}
+
+// TODO узнать насколько разумен такой формат возврата результатов
+std::list<std::unordered_map<std::string, std::string>> find_all(const int32_t fd) {
+    std::list<std::unordered_map<std::string, std::string>> result{};
+
+    return {};
+}
+
+std::list<std::unordered_map<std::string, std::string>>
+find_node_by_condition(const int32_t fd, std::pair<std::string, std::string> condition) { return {}; }
 
 bool delete_node(int32_t fd, int32_t id) {
+    // при удалении не забыть освободить и выделить free_space на предыдущем месте
     return false;
 }
 
