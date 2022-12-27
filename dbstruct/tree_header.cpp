@@ -89,10 +89,6 @@ int32_t initialize_db(const char *file_name, std::unordered_map<std::string, dat
     return fd;
 }
 
-struct index get_idx() {
-    return idx;
-}
-
 /// --- TODO ---
 bool add_node_to_index(int64_t id, int64_t parent_id, int64_t offset) {
 //    idx.id_to_offset[id] = offset;
