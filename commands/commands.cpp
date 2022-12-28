@@ -1,6 +1,5 @@
 #include "commands.h"
 #include "../data_process_utils/validation/schema_validation.h"
-#include "../dbstruct/tree_header.h"
 #include "../dbstruct/node.h"
 
 /** Добавляет новый документ в дерево.
@@ -13,7 +12,7 @@ int64_t add_node(const int32_t fd, int64_t parent_id, const std::unordered_map<s
         printf("Invalid node_data. Field must be match the schema!\n");
         return -1;
     }
-    struct node node = { 0 };
+    struct node node = {0};
     node.id = get_next_node_id(fd);
     node.parent_id = parent_id;
     node.data = node_data;
@@ -21,9 +20,12 @@ int64_t add_node(const int32_t fd, int64_t parent_id, const std::unordered_map<s
     //  offset, size, r_size будут заданы дальше, при записи
 
     if (!idx.parent_to_childs[parent_id].empty()) { // если у родителя есть уже другие дети
-         auto last_parent_child = idx.parent_to_childs[parent_id].end(); // добавим в лист родителя нового ребенка
-         node.prev = *(--last_parent_child);
+        auto last_parent_child = idx.parent_to_childs[parent_id].end(); // добавим в лист родителя нового ребенка
+        node.prev = idx.id_to_offset[*(--last_parent_child)];
         node_offset = write_node_to_db(fd, node);
+        auto prev_node = read_node_from_db(fd, node.prev); // укажем предыдущей ноде родителя новую
+        prev_node.next = node_offset;
+        write_node_to_db(fd, prev_node, prev_node.offset);
     } else {
         node_offset = write_node_to_db(fd, node);
         auto parent_node = read_node_from_db(fd, idx.id_to_offset[parent_id]);
@@ -40,14 +42,14 @@ int64_t add_node(const int32_t fd, int64_t parent_id, const std::unordered_map<s
 
 std::unordered_map<std::string, std::string> find_node_by_id(const int32_t fd, int32_t id) {
     if (idx.id_to_offset.count(id) == 0) {
-        printf("Node with such an id doesn't exist!\n");
+        printf("Node with such an id{%d} doesn't exist!\n", id);
         return {};
     }
     auto node = read_node_from_db(fd, idx.id_to_offset[id]);
     node.data["id"] = std::to_string(node.id);
     node.data["parent_id"] = std::to_string(node.parent_id);
 
-    return read_node_from_db(fd, idx.id_to_offset[id]).data;
+    return node.data;
 }
 
 std::list<std::unordered_map<std::string, std::string>> find_node_by_parent(const int32_t fd, int32_t parent_id) {
@@ -61,10 +63,11 @@ std::list<std::unordered_map<std::string, std::string>> find_node_by_parent(cons
         if (idx.id_to_offset.count(id) == 0) { // невозможно, конечно, но пусть будет
             printf("Node with such an id doesn't exist!\n");
         }
+        //{{{ можно переиспользовать find_node_by_id
         auto node = read_node_from_db(fd, idx.id_to_offset[id]);
         node.data["id"] = std::to_string(node.id);
         node.data["parent_id"] = std::to_string(node.parent_id);
-
+        //}}}
         result.emplace_back(node.data);
     }
 
@@ -76,9 +79,11 @@ std::list<std::unordered_map<std::string, std::string>> find_all(const int32_t f
     std::list<std::unordered_map<std::string, std::string>> result{};
 
     for (auto node: idx.id_to_offset) {
+        //{{{ можно переиспользовать find_node_by_id
         auto current_node = read_node_from_db(fd, node.second);
         current_node.data["id"] = std::to_string(current_node.id);
         current_node.data["parent_id"] = std::to_string(current_node.parent_id);
+        //}}}
         result.emplace_back(current_node.data);
     }
 
@@ -87,7 +92,7 @@ std::list<std::unordered_map<std::string, std::string>> find_all(const int32_t f
 
 // условие можно задавать только на поля содержащиеся в заданной схеме
 std::list<std::unordered_map<std::string, std::string>>
-find_node_by_condition(const int32_t fd, const std::pair<std::string, std::string>& condition) {
+find_node_by_condition(const int32_t fd, const std::pair<std::string, std::string> &condition) {
     auto header = get_tree_header_from_db(fd);
     if (!validate_field_by_schema(header.schema, condition)) {
         printf("Invalid condition in function find_node_by_condition!\n");
