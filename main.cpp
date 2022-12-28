@@ -24,7 +24,10 @@ int main() {
     // TODO написать функции для работы с индексами
     nde = read_node_from_db(fd, nde.first_child);
     // во всех методах применяется эвристика, что бд уже валидна, поэтому нужен валидный хедер файла изначально
-
+    auto all = find_all(fd);
+    auto node_by_id = find_node_by_id(fd, 0);
+    auto node_by_parent_id = find_node_by_parent(fd, 0);
+    auto node_by_condition = find_node_by_condition(fd, {"age", "13"});
     // TODO проверить работоспособность методов для записи и чтения struct node
 
     // сделать ключ для запуска -- обновить или продолжить в файле
