@@ -29,7 +29,7 @@ struct tree_header {
     int32_t nodes_count;
     /// Реальный занимаемый в памяти размер структуры (с учетом сериализованной схемы).
     int64_t size;
-    /// map[value_name] = data_type | parrent_id -- обязательная часть схемы.
+    /// map[value_name] = data_type | id и parent_id -- не являются частью схемы.
     std::unordered_map<std::string, data_type> schema;
 };
 
