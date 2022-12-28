@@ -60,6 +60,7 @@ bool set_tree_header_to_db(int32_t fd, struct tree_header header);
 int32_t initialize_db(const char *file_name, std::unordered_map<std::string, data_type> &name_to_type,
                    const std::unordered_map<std::string, std::string> &first_node_data);
 // TODO add descriptions
+int32_t initialize_db(const char *file_name);
 int32_t get_next_node_id(int32_t fd);
 bool add_node_to_index(int64_t id, int64_t parent_id,int64_t offset);
 bool remove_node_from_index(int64_t id, int64_t parent_id);
