@@ -38,7 +38,7 @@ int64_t get_last_free_space_offset(int32_t fd) {
     return previous_space.next;
 }
 
-int64_t add_free_space_to_list(int32_t fd, const struct node &node_to_free) {
+int64_t remove_node_from_db(int32_t fd, const struct node &node_to_free) {
     auto last_free_space_offset = get_last_free_space_offset(fd);
     struct free_space space = {0};
     if (last_free_space_offset != -1) { // если в листе есть освобожденные пространства, то изменяем указатель на след
@@ -50,6 +50,7 @@ int64_t add_free_space_to_list(int32_t fd, const struct node &node_to_free) {
     }
     space.size = node_to_free.r_size;
     write_free_space_to_db(fd, space, node_to_free.offset);
+
     return node_to_free.next;
 }
 

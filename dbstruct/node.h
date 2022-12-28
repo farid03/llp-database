@@ -38,7 +38,7 @@ struct free_space {
  * @param node_to_free - перезаписываемая (освобождаемая) структура
  * @return offset, если запись прошла успешно, 1L в случае неудачи
  */
-int64_t add_free_space_to_list(int32_t fd, const struct node& node_to_free);
+int64_t remove_node_from_db(int32_t fd, const struct node& node_to_free);
 
 /** Записывает struct node в первый подходящий по размерам free_space, иначе в конец файла.
  * @param fd - файловый дескриптор
