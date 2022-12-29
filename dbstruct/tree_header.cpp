@@ -50,8 +50,6 @@ int32_t initialize_db(const char *file_name, std::unordered_map<std::string, dat
     std::fstream clear_file(file_name, std::ios::out); // очищаем файл
     clear_file.close();
     struct tree_header header = {0};
-    struct free_space space = {0};
-    space.size = 256;
 
     for (const auto &schema_elem: name_to_type) {
         switch (schema_elem.second) {
@@ -97,8 +95,13 @@ int32_t initialize_db(const char *file_name, std::unordered_map<std::string, dat
         printf("Error in initialize_db -> initialize_index! (2)\n");
         return -1;
     }
+    close_file(cfd);
 
     return fd;
+}
+
+void close_db(int32_t fd) {
+    close_file(fd);
 }
 
 bool add_node_to_index(int64_t id, int64_t parent_id, int64_t offset) {
