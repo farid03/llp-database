@@ -1,3 +1,4 @@
+#include <stack>
 #include "commands.h"
 #include "../data_process_utils/validation/schema_validation.h"
 #include "../dbstruct/node.h"
@@ -40,9 +41,9 @@ int64_t add_node(const int32_t fd, int64_t parent_id, const std::unordered_map<s
     return node.id;
 }
 
-std::unordered_map<std::string, std::string> find_node_by_id(const int32_t fd, int32_t id) {
+std::unordered_map<std::string, std::string> find_node_by_id(const int32_t fd, int64_t id) {
     if (idx.id_to_offset.count(id) == 0) {
-        printf("Node with such an id{%d} doesn't exist!\n", id);
+        printf("Node with such an id{%ld} doesn't exist!\n", id);
         return {};
     }
     auto node = read_node_from_db(fd, idx.id_to_offset[id]);
@@ -52,7 +53,7 @@ std::unordered_map<std::string, std::string> find_node_by_id(const int32_t fd, i
     return node.data;
 }
 
-std::list<std::unordered_map<std::string, std::string>> find_node_by_parent(const int32_t fd, int32_t parent_id) {
+std::list<std::unordered_map<std::string, std::string>> find_node_by_parent(const int32_t fd, int64_t parent_id) {
     std::list<std::unordered_map<std::string, std::string>> result{};
     if (idx.parent_to_childs.count(parent_id) == 0) {
         printf("Node with such a parent_id doesn't exist!\n");
@@ -60,31 +61,18 @@ std::list<std::unordered_map<std::string, std::string>> find_node_by_parent(cons
     }
 
     for (auto id: idx.parent_to_childs[parent_id]) {
-        if (idx.id_to_offset.count(id) == 0) { // невозможно, конечно, но пусть будет
-            printf("Node with such an id doesn't exist!\n");
-        }
-        //{{{ можно переиспользовать find_node_by_id
-        auto node = read_node_from_db(fd, idx.id_to_offset[id]);
-        node.data["id"] = std::to_string(node.id);
-        node.data["parent_id"] = std::to_string(node.parent_id);
-        //}}}
-        result.emplace_back(node.data);
+        result.emplace_back(find_node_by_id(fd, id));
     }
 
     return result;
 }
 
-// TODO узнать насколько разумен такой формат возврата результатов
+// TODO узнать насколько разумен такой формат возврата результатов, не разумен
 std::list<std::unordered_map<std::string, std::string>> find_all(const int32_t fd) {
     std::list<std::unordered_map<std::string, std::string>> result{};
 
     for (auto node: idx.id_to_offset) {
-        //{{{ можно переиспользовать find_node_by_id
-        auto current_node = read_node_from_db(fd, node.second);
-        current_node.data["id"] = std::to_string(current_node.id);
-        current_node.data["parent_id"] = std::to_string(current_node.parent_id);
-        //}}}
-        result.emplace_back(current_node.data);
+        result.emplace_back(find_node_by_id(fd, node.first));
     }
 
     return result;
@@ -111,11 +99,87 @@ find_node_by_condition(const int32_t fd, const std::pair<std::string, std::strin
     return result;
 }
 
-bool delete_node(int32_t fd, int32_t id) {
+bool delete_node(int32_t fd, int64_t id) {
     // при удалении не забыть освободить и выделить free_space на предыдущем месте
-    return false;
+    if (id == 0) { // корневой узел нельзя удалять
+        printf("Cannot delete a node with ID 0.");
+        return false;
+    }
+    if (idx.id_to_offset.count(id) == 0) {
+        printf("Node with such an id{%ld} doesn't exist!\n", id);
+        return false;
+    }
+
+    std::stack<int64_t> rm_nodes_offset = {};
+    auto node_to_remove = read_node_header_from_db(fd, idx.id_to_offset[id]);
+    remove_node_from_index(node_to_remove.id, node_to_remove.parent_id);
+    remove_node_from_db(fd, node_to_remove);
+    if (node_to_remove.first_child != 0) {
+        rm_nodes_offset.push(node_to_remove.first_child);
+    }
+
+    while (!rm_nodes_offset.empty()) {
+        auto node_offset = rm_nodes_offset.top();
+        rm_nodes_offset.pop();
+        node_to_remove = read_node_header_from_db(fd, node_offset);
+        remove_node_from_index(node_to_remove.id, node_to_remove.parent_id);
+        remove_node_from_db(fd, node_to_remove);
+
+        if (node_to_remove.first_child != 0) {
+            rm_nodes_offset.push(node_to_remove.first_child);
+        }
+        while (node_to_remove.next != 0) {
+            node_to_remove = read_node_header_from_db(fd, node_to_remove.next);
+            remove_node_from_index(node_to_remove.id, node_to_remove.parent_id);
+            remove_node_from_db(fd, node_to_remove);
+            if (node_to_remove.first_child != 0) {
+                rm_nodes_offset.push(node_to_remove.first_child);
+            }
+        }
+    }
+
+    return true;
 }
 
-bool update_node(int32_t fd, std::unordered_map<std::string, std::string> node_data) {
-    return delete_node(fd, std::stoi(node_data["id"]));
+bool update_node(int32_t fd, int64_t id, const std::unordered_map<std::string, std::string>& node_data) {
+    if (id == 0) { // корневой узел нельзя удалять
+        printf("Cannot update a node with ID 0.");
+        return false;
+    }
+    if (idx.id_to_offset.count(id) == 0) {
+        printf("Node with such an id{%ld} doesn't exist!\n", id);
+        return false;
+    }
+    if (!validate_node_by_schema(fd, node_data)) {
+        printf("Invalid node_data. Field must be match the schema!\n");
+        return false;
+    }
+
+    auto node_to_update = read_node_header_from_db(fd, idx.id_to_offset[id]);
+    node_to_update.data = node_data;
+    // валидируется при записи: offset, size, r_size
+    // оставляем тем же: id, parent_id, prev, next, first_child
+    remove_node_from_db(fd, node_to_update);
+    auto updated_offset = write_node_to_db(fd, node_to_update);
+
+    // нужно обновить ссылки у родителя и соседних детей на нас
+    auto parent = read_node_header_from_db(fd, idx.id_to_offset[node_to_update.parent_id]);
+    if (idx.parent_to_childs[parent.id].size() == 1) { // если мы единственный ребенок (у родителя есть на нас указатель
+        parent.first_child = updated_offset;
+        write_node_header_to_db(fd, parent, parent.offset);
+    } else {
+        if (node_to_update.next != 0) {
+            auto next = read_node_header_from_db(fd, node_to_update.next);
+            next.prev = updated_offset;
+            write_node_header_to_db(fd, next, next.offset);
+        }
+        if (node_to_update.prev != 0) {
+            auto prev = read_node_header_from_db(fd, node_to_update.prev);
+            prev.next = updated_offset;
+            write_node_header_to_db(fd, prev, prev.offset);
+        }
+    }
+    idx.id_to_offset[id] = updated_offset; // обновляем offset в индексе
+
+    return true;
 }
