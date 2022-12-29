@@ -12,7 +12,7 @@ bool write_free_space_to_db(int32_t fd, struct free_space space, int64_t offset)
  * @param offset - заданное смещение в байтах
  * @return struct free_space - считанная структура
  */
-struct free_space get_free_space_struct_from_db(int32_t fd, int64_t offset) {
+struct free_space read_free_space_from_db(int32_t fd, int64_t offset) {
     struct free_space space = { 0 };
     read_from_file(fd, offset, &space, sizeof(space));
 
@@ -28,80 +28,106 @@ int64_t get_last_free_space_offset(int32_t fd) {
     if (header.first_free_space == 0) {
         return -1;
     }
-    struct free_space space = get_free_space_struct_from_db(fd, header.first_free_space);
-    struct free_space previous_space = {0};
+    int64_t space_offset = header.first_free_space;
+    struct free_space space = read_free_space_from_db(fd, header.first_free_space);
     while (space.next != 0) {
-        previous_space = space;
-        space = get_free_space_struct_from_db(fd, space.next);
+        space_offset = space.next;
+        space = read_free_space_from_db(fd, space.next);
     }
 
-    return previous_space.next;
+    return space_offset;
 }
 
 int64_t remove_node_from_db(int32_t fd, const struct node &node_to_free) {
     auto last_free_space_offset = get_last_free_space_offset(fd);
     struct free_space space = {0};
     if (last_free_space_offset != -1) { // если в листе есть освобожденные пространства, то изменяем указатель на след
-        auto last_free_space = get_free_space_struct_from_db(fd, last_free_space_offset);
+        auto last_free_space = read_free_space_from_db(fd, last_free_space_offset);
         last_free_space.next = node_to_free.offset;
+        write_free_space_to_db(fd, last_free_space, last_free_space_offset);
+        space.prev = last_free_space_offset;
     } else { // иначе записываем в хедер файла первое освобожденное пространство
         auto header = get_tree_header_without_schema_from_db(fd);
         header.first_free_space = node_to_free.offset;
+        set_tree_header_to_db(fd, header);
     }
     space.size = node_to_free.r_size;
     write_free_space_to_db(fd, space, node_to_free.offset);
 
-    return node_to_free.next;
+    return node_to_free.offset;
 }
 
-/** Записывает struct node в файл по заданному смещению.
- * @param fd - файловый дескриптор
- * @param node - записываемая структура
- * @param offset - заданное смещение в байтах
- * @return true, в случае успеха, иначе false
- * @attention валидирует поле size при записи структуры в файл!
- */
+bool write_node_header_to_db(int32_t fd, struct node node, int64_t offset) {
+    return write_into_file(fd, offset, &node, offsetof(struct node, data) - 1) == offset;
+}
+
 bool write_node_to_db(int32_t fd, struct node node, int64_t offset) {
     auto cfd = open_file(".cache");
     serialize_and_cache_node_data(node.data);
     node.size = offsetof(struct node, data) - 1 + get_file_size(cfd);
+    if (node.r_size == 0 || node.r_size < node.size) {
+        node.r_size = node.size;
+    }
     auto data_offset = move_from_cache_to_db(fd, cfd, offset + offsetof(struct node, data));
     auto node_header_offset = write_into_file(fd, offset, &node, offsetof(struct node, data) - 1);
+    close_file(cfd);
 
     return node_header_offset == offset && data_offset == offset + offsetof(struct node, data);
 }
 
+inline int64_t count_node_size(struct node &node) {
+    auto cfd = open_file(".cache");
+    serialize_and_cache_node_data(node.data);
+    auto size = offsetof(struct node, data) - 1 + get_file_size(cfd);
+    close_file(cfd);
+
+    return size;
+}
+
 int64_t write_node_to_db(int32_t fd, struct node node) {
     struct tree_header header = get_tree_header_without_schema_from_db(fd);
-    struct free_space space = { 0 };
+    struct free_space space = {0};
     int64_t space_offset = 0;
+
     if (header.first_free_space == 0) {
         goto write_node_to_eof;
     }
-
-    space = get_free_space_struct_from_db(fd, header.first_free_space);
-    while (space.next != 0 && space.size < sizeof(node)) { // поиск первого подходящего пространства
+    node.size = count_node_size(node);// надо валидировать сайз перед апдейтом/записью для поиска верного free_space
+    space_offset = header.first_free_space;
+    space = read_free_space_from_db(fd, header.first_free_space);
+    while (space.next != 0 && space.size < node.size) { // поиск первого подходящего пространства
         space_offset = space.next;
-        space = get_free_space_struct_from_db(fd, space.next);
+        space = read_free_space_from_db(fd, space.next);
     }
 
-    if (space_offset != 0 && space.size > sizeof(node)) { // если есть подходящее освобожденное пространство
+    if (space_offset != 0 && space.size > node.size) { // если есть подходящее освобожденное пространство
         node.r_size = space.size;
         node.offset = space_offset;
         if (!write_node_to_db(fd, node, space_offset)) {
             printf("Error in write_node_to_db! (1)\n");
             return 1;
         }
-
-        return space_offset;
-    } else if (space.size > sizeof(node)) { // если это единственное освобожд пространство и оно подходит нам
-        space_offset = header.first_free_space;
-        header.first_free_space = 0;
-        node.r_size = space.size;
-        node.offset = space_offset;
-        if (!write_node_to_db(fd, node, space_offset)) {
-            printf("Error in write_node_to_db! (2)\n");
-            return 1;
+        if (space.prev == 0) { // если использованный спейс был указан в хедере (первым)
+            header = get_tree_header_without_schema_from_db(fd);
+            header.first_free_space = space.next;
+            set_tree_header_to_db(fd, header);
+            if (space.next != 0) { // если следующий после первого спейса существует, то указываем ему, что он первый
+                auto next = read_free_space_from_db(fd, space.next);
+                next.prev = 0;
+                write_free_space_to_db(fd, next, space.next);
+            }
+        } else {
+            auto prev = read_free_space_from_db(fd, space.prev);
+            if (space.next != 0) { // если использованный спейс не последний, то указываем соседям друг друга
+                auto next = read_free_space_from_db(fd, space.next);
+                prev.next = space.next;
+                next.prev = space.prev;
+                write_free_space_to_db(fd, next, space.next);
+                write_free_space_to_db(fd, prev, space.prev);
+            } else { // иначе указываем предыдущему соседу, что он последний
+                prev.next = 0;
+                write_free_space_to_db(fd, prev, space.prev);
+            }
         }
 
         return space_offset;

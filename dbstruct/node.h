@@ -9,9 +9,9 @@ struct node {
     /// Задается при записи в файл write_node_to_db
     int64_t offset; // АДРЕС В ФАЙЛЕ
     /// Задается в add_node
-    int64_t id; // АДРЕС В ФАЙЛЕ
+    int64_t id;
     /// Задается в add_node
-    int64_t parent_id; // АДРЕС В ФАЙЛЕ
+    int64_t parent_id; // id
     /// Задается в add_node
     int64_t prev;   // АДРЕС В ФАЙЛЕ
     /// Задается в add_node (0 для новых нод) // тк новая нода записывается в конец бамбука детей
@@ -28,6 +28,7 @@ struct node {
 };
 
 struct free_space {
+    int64_t prev;
     int64_t next;
     uint32_t size; // = sizeof(free_space) + space
 };
@@ -58,6 +59,7 @@ int64_t write_node_to_db(int32_t fd, struct node node);
  * @attention валидирует поле size при записи структуры в файл!
  */
 bool write_node_to_db(int32_t fd, struct node node, int64_t offset);
+bool write_node_header_to_db(int32_t fd, struct node node, int64_t offset);
 
 /** Записывает struct free_space в файл по заданному смещению.
  * @param fd - файловый дескриптор
@@ -81,4 +83,5 @@ struct node read_node_header_from_db(int32_t fd, int64_t offset);
  */
 struct node read_node_from_db(int32_t fd, int64_t offset);
 
+struct free_space read_free_space_from_db(int32_t fd, int64_t offset); // to debug TODO delete
 #endif //LLP_DATABASE_NODE_H
