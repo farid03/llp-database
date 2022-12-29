@@ -17,6 +17,7 @@ std::unordered_map<std::string, data_type> deserialize_file_header_schema(int32_
     ia >> map;
     ifs.close();
     free(buff);
+    close_file(cfd);
 
     return map;
 }
@@ -54,6 +55,7 @@ std::unordered_map<std::string, std::string> deserialize_node_data(int32_t fd, i
     ia >> value_to_data;
     ifs.close();
     free(buff);
+    close_file(cfd);
 
     return value_to_data;
 }
