@@ -14,6 +14,6 @@ bool is_valid_float(const std::string &s);
 bool validate_node_by_schema(int32_t fd, const std::unordered_map<std::string, std::string> &node_data);
 
 bool validate_field_by_schema(const std::unordered_map<std::string, data_type> &schema,
-                              const std::pair<const std::basic_string<char>, std::basic_string<char>> &a);
+                              const std::pair<const std::string, std::string> &a);
 
 #endif //LLP_DATABASE_SCHEMA_VALIDATION_H

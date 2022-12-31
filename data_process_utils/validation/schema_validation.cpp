@@ -1,5 +1,4 @@
 #include "schema_validation.h"
-#include "../../dbstruct/tree_header.h"
 
 bool is_valid_int(const std::string &s) {
     size_t offset = 0;
@@ -18,23 +17,27 @@ bool is_valid_float(const std::string &s) {
 }
 
 bool validate_field_by_schema(const std::unordered_map<std::string, data_type> &schema,
-                              const std::pair<const std::basic_string<char>, std::basic_string<char>> &a) {
-    if (schema.count(a.first) != 1) { // валидируем название полей ноды по схеме, названия уникальны (map)
-        return false;
+                              const std::pair<const std::string, std::string> &name_to_value) {
+    if (schema.count(name_to_value.first) != 1) { // валидируем название полей ноды по схеме, названия уникальны (map)
+        if (name_to_value.first != "id" && name_to_value.first != "parent_id") {
+            return false;
+        } else { // если это id-поля, которые могут использоваться в condition
+            return is_valid_int(name_to_value.second);
+        }
     }
-    switch (schema.at(a.first)) {
+    switch (schema.at(name_to_value.first)) {
         case BOOL:
-            if (a.second != "true" && a.second != "false") {
+            if (name_to_value.second != "true" && name_to_value.second != "false") {
                 return false;
             }
             break;
         case INT:
-            if (!is_valid_int(a.second)) {
+            if (!is_valid_int(name_to_value.second)) {
                 return false;
             }
             break;
         case FLOAT:
-            if (!is_valid_float(a.second)) {
+            if (!is_valid_float(name_to_value.second)) {
                 return false;
             }
             break;
