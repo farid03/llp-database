@@ -104,7 +104,7 @@ void close_db(int32_t fd) {
     close_file(fd);
 }
 
-bool add_node_to_index(int64_t id, int64_t parent_id, int64_t offset) {
+bool add_node_to_index(int32_t id, int64_t offset) {
 //    idx.id_to_offset[id] = offset;
 //    idx.parent_to_childs[parent_id].emplace(id);
 //    return true;
@@ -115,20 +115,12 @@ bool add_node_to_index(int64_t id, int64_t parent_id, int64_t offset) {
         return false;
     } else {
         idx.id_to_offset[id] = offset;
-        idx.parent_to_childs[id] = {};
-    }
-
-    if (idx.parent_to_childs.count(parent_id) == 0) {
-        printf("Element parent_id not exists in index!\n");
-        return false;
-    } else {
-        idx.parent_to_childs[parent_id].emplace(id);
     }
 
     return true;
 }
 
-bool remove_node_from_index(int64_t id, int64_t parent_id) {
+bool remove_node_from_index(int32_t id) {
 //    idx.id_to_offset.erase(id);
 //    idx.parent_to_childs[parent_id].erase(id);
 //    return true;
@@ -139,19 +131,6 @@ bool remove_node_from_index(int64_t id, int64_t parent_id) {
         return false;
     } else {
         idx.id_to_offset.erase(id);
-        idx.parent_to_childs.erase(id);
-    }
-
-    if (idx.parent_to_childs.count(parent_id) == 0) {
-        printf("Element parent_id not exists in index!\n");
-        return false;
-    } else {
-        if (idx.parent_to_childs[parent_id].count(id) == 0) {
-            printf("Element not exists in index.parent_to_childs!\n");
-            return false;
-        } else {
-            idx.parent_to_childs[parent_id].erase(id);
-        }
     }
 
     return true;
@@ -163,21 +142,21 @@ bool initialize_index(int32_t fd) { // FIXME есть баг с бесконеч
     std::stack<int64_t> s = {};
     auto first_node = read_node_from_db(fd, header.first_node);
     idx.id_to_offset[first_node.id] = header.first_node; // стартовая инициализация индексов
-    idx.parent_to_childs[first_node.id] = std::set<int64_t>();
+
     if (first_node.first_child != 0) {
         s.push(first_node.first_child);
     }
     while (!s.empty()) {
-        auto c_node_offset = s.top();
+        auto current_node_offset = s.top();
         s.pop();
-        auto node = read_node_header_from_db(fd, c_node_offset);
-        add_node_to_index(node.id, node.parent_id, node.offset);
+        auto node = read_node_header_from_db(fd, current_node_offset);
+        add_node_to_index(node.id, node.offset);
         if (node.first_child != 0) {
             s.push(node.first_child);
         }
         while (node.next != 0) {
             node = read_node_header_from_db(fd, node.next);
-            add_node_to_index(node.id, node.parent_id, node.offset);
+            add_node_to_index(node.id, node.offset);
             if (node.first_child != 0) {
                 s.push(node.first_child);
             }

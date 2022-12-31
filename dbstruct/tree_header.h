@@ -6,11 +6,13 @@
 #include <cstdint>
 #include <string>
 
+/** Индекс для быстрой адресации к узлам дерева по id.
+ * @details Потребление памяти пренебрежимо мало ~ 1.1Мб на 100 000 элементов
+*/
 extern struct index idx;
 
 struct index {
-    std::unordered_map<int64_t, int64_t> id_to_offset = {};
-    std::unordered_map<int64_t, std::set<int64_t>> parent_to_childs = {};
+    std::unordered_map<int32_t, int64_t> id_to_offset = {};
 };
 
 enum data_type {
@@ -63,8 +65,8 @@ int32_t initialize_db(const char *file_name, std::unordered_map<std::string, dat
 int32_t initialize_db(const char *file_name);
 void close_db(int32_t fd);
 int32_t get_next_node_id(int32_t fd);
-bool add_node_to_index(int64_t id, int64_t parent_id,int64_t offset);
-bool remove_node_from_index(int64_t id, int64_t parent_id);
+bool add_node_to_index(int32_t id, int64_t offset);
+bool remove_node_from_index(int32_t id);
 bool initialize_index(int32_t fd);
 
 #endif //LLP_DATABASE_TREE_HEADER_H
