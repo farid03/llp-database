@@ -9,9 +9,9 @@ struct node {
     /// Задается при записи в файл write_node_to_db
     int64_t offset; // АДРЕС В ФАЙЛЕ
     /// Задается в add_node
-    int64_t id;
+    int32_t id;
     /// Задается в add_node
-    int64_t parent_id; // id
+    int64_t parent; //  АДРЕС В ФАЙЛЕ
     /// Задается в add_node
     int64_t prev;   // АДРЕС В ФАЙЛЕ
     /// Задается в add_node (0 для новых нод) // тк новая нода записывается в конец бамбука детей
