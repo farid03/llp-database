@@ -21,5 +21,5 @@ add_executable(llp_database main.cpp
         dbstruct/tree_header.cpp dbstruct/tree_header.h
         commands/commands.cpp commands/commands.h
         data_process_utils/validation/schema_validation.h data_process_utils/validation/schema_validation.cpp
-        data_process_utils/serialization/serialization.h data_process_utils/serialization/serialization.cpp)
+        data_process_utils/serialization/serialization.h data_process_utils/serialization/serialization.cpp commands/iterator/result_iterator.cpp commands/iterator/result_iterator.h)
 target_link_libraries(llp_database PRIVATE ${Boost_LIBRARIES})
