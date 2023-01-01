@@ -5,7 +5,6 @@
 #include <unordered_map>
 #include <utility>
 #include "../../dbstruct/tree_header.h"
-#include "../commands.h"
 #include "../../dbstruct/node.h"
 
 enum comparison_operator {
