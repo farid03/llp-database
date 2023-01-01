@@ -34,6 +34,8 @@ bool set_tree_header_to_db(const int32_t fd, tree_header header) {
     return write_into_file(fd, 0, &header, offsetof(tree_header, schema) - 1) == 0;
 }
 
+bool initialize_index(int32_t fd);
+
 int32_t initialize_db(const char *file_name) {
     auto fd = open_file(file_name);
     if (!initialize_index(fd)) {
@@ -105,11 +107,6 @@ void close_db(int32_t fd) {
 }
 
 bool add_node_to_index(int32_t id, int64_t offset) {
-//    idx.id_to_offset[id] = offset;
-//    idx.parent_to_childs[parent_id].emplace(id);
-//    return true;
-
-    // FIXME debug version
     if (idx.id_to_offset.count(id) != 0) {
         printf("Element already exists in index!\n");
         return false;
@@ -121,11 +118,6 @@ bool add_node_to_index(int32_t id, int64_t offset) {
 }
 
 bool remove_node_from_index(int32_t id) {
-//    idx.id_to_offset.erase(id);
-//    idx.parent_to_childs[parent_id].erase(id);
-//    return true;
-
-    // FIXME debug version
     if (idx.id_to_offset.count(id) == 0) {
         printf("Element not exists in index!\n");
         return false;
@@ -137,7 +129,7 @@ bool remove_node_from_index(int32_t id) {
 }
 
 // Проходимся по всему дереву документов и инициализируем индексы
-bool initialize_index(int32_t fd) { // FIXME есть баг с бесконечным циклом
+bool initialize_index(int32_t fd) {
     auto header = get_tree_header_without_schema_from_db(fd);
     std::stack<int64_t> s = {};
     auto first_node = read_node_from_db(fd, header.first_node);

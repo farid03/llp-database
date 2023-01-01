@@ -38,7 +38,6 @@ int64_t get_last_free_space_offset(int32_t fd) {
     return space_offset;
 }
 
-/// нужно обновить ссылки у родителя и соседних детей на node_to_free отдельно
 int64_t remove_node_from_db(int32_t fd, const struct node &node_to_free) {
     auto last_free_space_offset = get_last_free_space_offset(fd);
     struct free_space space = {0};
