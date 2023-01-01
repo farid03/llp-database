@@ -2,7 +2,7 @@
 #include "commands.h"
 #include "../data_process_utils/validation/schema_validation.h"
 
-int64_t add_node(const int32_t fd, int32_t parent_id, const std::unordered_map<std::string, std::string> &node_data) {
+int32_t add_node(const int32_t fd, int32_t parent_id, const std::unordered_map<std::string, std::string> &node_data) {
     if (!validate_node_by_schema(fd, node_data)) {
         printf("Invalid node_data. Field must be match the schema!\n");
         return -1;

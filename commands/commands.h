@@ -28,7 +28,7 @@ struct query { // query должен строить пользователь, к
  * @param node_data - поля добавляемого узла | node_data = map[field_name] = data
  * @return возвращает id записанного узла, -1 в случае неудачи
  */
-int64_t add_node(int32_t fd, int32_t parent_id, const std::unordered_map<std::string, std::string> &node_data);
+int32_t add_node(int32_t fd, int32_t parent_id, const std::unordered_map<std::string, std::string> &node_data);
 
 /**
  * Возвращает документ по заданному id.
