@@ -1,13 +1,7 @@
 #include <stack>
 #include "commands.h"
 #include "../data_process_utils/validation/schema_validation.h"
-#include "iterator/result_iterator.h"
 
-/** Добавляет новый документ в дерево.
- * @param fd - файловый дескриптор
- * @param node - новый узел, который нужно добавить | node = map[field_name]: data
- * @return возвращает id записанного узла, -1 в случае неудачи
- */
 int64_t add_node(const int32_t fd, int32_t parent_id, const std::unordered_map<std::string, std::string> &node_data) {
     if (!validate_node_by_schema(fd, node_data)) {
         printf("Invalid node_data. Field must be match the schema!\n");
@@ -18,7 +12,7 @@ int64_t add_node(const int32_t fd, int32_t parent_id, const std::unordered_map<s
     auto parent = read_node_header_from_db(fd, idx.id_to_offset[parent_id]);
     node.parent = parent.offset;
     node.data = node_data;
-    int64_t node_offset = 0;
+    int64_t node_offset{0};
     //  offset, size, r_size будут заданы дальше, при записи
 
     if (parent.first_child != 0) { // если у родителя есть уже другие дети
@@ -47,7 +41,6 @@ int64_t add_node(const int32_t fd, int32_t parent_id, const std::unordered_map<s
     return node.id;
 }
 
-// TODO придется выпилить и оставить только нижни find
 std::unordered_map<std::string, std::string> find_node_by_id(const int32_t fd, int32_t id) {
     if (idx.id_to_offset.count(id) == 0) {
         printf("Node with such an id{%d} doesn't exist!\n", id);
@@ -155,7 +148,7 @@ bool update_node(int32_t fd, int32_t id, const std::unordered_map<std::string, s
     auto node_to_update = read_node_header_from_db(fd, idx.id_to_offset[id]);
     node_to_update.data = node_data;
     // валидируется при записи: offset, size, r_size
-    // оставляем тем же: id, parent_id, prev, next, first_child
+    // оставляем прежними: id, parent_id, prev, next, first_child
     remove_node_from_db(fd, node_to_update);
     auto updated_offset = write_node_to_db(fd, node_to_update);
 

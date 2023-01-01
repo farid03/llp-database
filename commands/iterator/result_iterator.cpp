@@ -65,7 +65,26 @@ bool result_iterator::proceed() {
                 return false;
             }
         }
-    } while (!check(fd, node, cond));
+    } while (!check(fd, node, condition));
 
     return true;
+}
+
+// To debug
+void result_iterator::print() {
+    printf("--- Result Iterator | Condition: %s ---\n", this->condition.to_string().c_str());
+
+    if (!this->is_valid) {
+        printf("Iterator is not valid\n");
+        printf("\n");
+        return;
+    }
+
+    do {
+        for (const auto &name_to_value: *(*this)) {
+            printf("%s: %s, ", name_to_value.first.c_str(), name_to_value.second.c_str());
+        }
+        printf("\n");
+    } while (this->proceed());
+    printf("\n");
 }
