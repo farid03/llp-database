@@ -40,7 +40,7 @@ struct condition {
  * @param fd - файловый дескриптор
  * @param node - узел, который проверяется на условие
  * @param cond - условие проверки
- * @return
+ * @return true в случае совпадения, иначе false
  */
 bool check(int32_t fd, struct node node, const struct condition &cond);
 
