@@ -100,7 +100,7 @@ int64_t write_node_to_db(int32_t fd, struct node node) {
         space = read_free_space_from_db(fd, space.next);
     }
 
-    if (space_offset != 0 && space.size > node.size) { // если есть подходящее освобожденное пространство
+    if (space_offset != 0 && space.size >= node.size) { // если есть подходящее освобожденное пространство
         node.r_size = space.size;
         node.offset = space_offset;
         if (!write_node_to_db(fd, node, space_offset)) {
