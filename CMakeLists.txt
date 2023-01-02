@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 11)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined -g")
 #set(ASAN_OPTIONS "${ASAN_OPTIONS} detect_leaks=1")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-find_package(Boost 1.74.0 COMPONENTS system filesystem serialization REQUIRED)
+find_package(Boost 1.74.0 REQUIRED COMPONENTS system filesystem serialization)
 include_directories(
         include
         src
@@ -19,5 +19,6 @@ add_executable(llp_database main.cpp
         dbstruct/tree_header.cpp dbstruct/tree_header.h
         commands/commands.cpp commands/commands.h
         data_process_utils/validation/schema_validation.h data_process_utils/validation/schema_validation.cpp
-        data_process_utils/serialization/serialization.h data_process_utils/serialization/serialization.cpp commands/iterator/result_iterator.cpp commands/iterator/result_iterator.h test/test.cpp test/test.h test/generator/random_generator.cpp)
+        data_process_utils/serialization/serialization.h data_process_utils/serialization/serialization.cpp
+        commands/iterator/result_iterator.cpp commands/iterator/result_iterator.h)
 target_link_libraries(llp_database PRIVATE ${Boost_LIBRARIES})

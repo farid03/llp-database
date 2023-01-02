@@ -1,6 +1,5 @@
 #include <unordered_map>
 #include "commands/commands.h"
-#include "test/test.h"
 
 int main() {
     std::unordered_map<std::string, data_type> schema = {
