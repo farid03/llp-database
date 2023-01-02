@@ -18,12 +18,16 @@ int32_t get_next_node_id(int32_t fd) {
 
 struct tree_header get_tree_header_without_schema_from_db(const int32_t fd) {
     struct tree_header header = {0, 0, 0, 0, {}};
-    read_from_file(fd, 0, &header, offsetof(tree_header, schema) - 1);
+    auto ret = read_from_file(fd, 0, &header, offsetof(tree_header, schema) - 1);
+    if (ret != offsetof(tree_header, schema) - 1) {
+        printf("Error in get_tree_header_without_schema! %lu %zd", offsetof(tree_header, schema) - 1, ret);
+    }
 
     return header;
 }
 
 struct tree_header get_tree_header_from_db(const int32_t fd) {
+    //    printf("header {%ld, %ld, %d, %ld}\n", header.first_node, header.first_free_space, header.nodes_count, header.size);
     auto header = get_tree_header_without_schema_from_db(fd);
     header.schema = deserialize_file_header_schema(fd, header.size);
 
@@ -69,7 +73,7 @@ int32_t initialize_db(const char *file_name, std::unordered_map<std::string, dat
     // в функции add_node происходит валидация первого добавляемого узла схеме
     struct node first_node = {
             0, // задается в write_node_to_db
-            get_next_node_id(fd),
+            0, // id
             0, // это нулевая нода, родитель отсутствует
             0, // prev
             0, // next
@@ -91,6 +95,7 @@ int32_t initialize_db(const char *file_name, std::unordered_map<std::string, dat
         return -1;
     }
     header.first_node = write_node_to_db(fd, first_node);
+    header.nodes_count = 1;
     set_tree_header_to_db(fd, header);
 
     if (!initialize_index(fd)) {
@@ -103,6 +108,7 @@ int32_t initialize_db(const char *file_name, std::unordered_map<std::string, dat
 }
 
 void close_db(int32_t fd) {
+    idx.id_to_offset.clear();
     close_file(fd);
 }
 
