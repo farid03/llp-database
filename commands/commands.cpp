@@ -69,7 +69,6 @@ struct result_iterator find_all(int32_t fd) {
     return {fd, condition("nop", "nop", NOP)};
 }
 
-
 bool delete_node(int32_t fd, int32_t id) {
     // при удалении не забыть освободить и выделить free_space на предыдущем месте
     if (id == 0) { // корневой узел нельзя удалять
@@ -154,9 +153,14 @@ bool update_node(int32_t fd, int32_t id, const std::unordered_map<std::string, s
 
     // нужно обновить ссылки у родителя и соседних детей на нас
     auto parent = read_node_header_from_db(fd, node_to_update.parent);
-    if (parent.first_child == node_to_update.offset) { // если мы единственный ребенок (у родителя есть на нас указатель
+    if (parent.first_child == node_to_update.offset) { // если мы первый ребенок (у родителя есть на нас указатель
         parent.first_child = updated_offset;
         write_node_header_to_db(fd, parent, parent.offset);
+        if (node_to_update.next != 0) {
+            auto next = read_node_header_from_db(fd, node_to_update.next);
+            next.prev = updated_offset;
+            write_node_header_to_db(fd, next, next.offset);
+        }
     } else {
         if (node_to_update.next != 0) {
             auto next = read_node_header_from_db(fd, node_to_update.next);
@@ -169,6 +173,19 @@ bool update_node(int32_t fd, int32_t id, const std::unordered_map<std::string, s
             write_node_header_to_db(fd, prev, prev.offset);
         }
     }
+
+    // А ДЕТЯМ КТО ГОВОРИТЬ БУДЕТ
+    if (node_to_update.first_child != 0) {
+        auto node = read_node_header_from_db(fd, node_to_update.first_child);
+        node.parent = updated_offset;
+        write_node_header_to_db(fd, node, node.offset);
+        while (node.next != 0) {
+            node = read_node_header_from_db(fd, node.next);
+            node.parent = updated_offset;
+            write_node_header_to_db(fd, node, node.offset);
+        }
+    }
+
     idx.id_to_offset[id] = updated_offset; // обновляем offset в индексе
 
     return true;
