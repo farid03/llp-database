@@ -79,8 +79,10 @@ void result_iterator::print() {
         printf("\n");
         return;
     }
-
     do {
+//    To debug
+//    printf("id: %d, offset: %ld, parent: %ld, prev: %ld, next: %ld, fchild: %ld\n",
+//           this->node.id, this->node.offset, this->node.parent, this->node.prev, this->node.next, this->node.first_child);
         for (const auto &name_to_value: *(*this)) {
             printf("%s: %s, ", name_to_value.first.c_str(), name_to_value.second.c_str());
         }
