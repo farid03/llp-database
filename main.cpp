@@ -1,11 +1,6 @@
 #include <unordered_map>
-#include "dbstruct/tree_header.h"
 #include "commands/commands.h"
-#include "commands/iterator/result_iterator.h"
-#include "test/generator/random_generator.h"
 #include "test/test.h"
-
-// TODO есть места где можно оптимизировать read|write node, тк не всегда нужна сериализованная часть узла
 
 int main() {
     std::unordered_map<std::string, data_type> schema = {
@@ -33,13 +28,6 @@ int main() {
     res[4] = add_node(fd, 0, nodes[5]);
     res[1] = add_node(fd, 1, nodes[2]);
     res[2] = add_node(fd, 1, nodes[3]);
-
-    std::unordered_map<std::string, std::string> node = {
-            {"word",  get_random_string_from_array()},
-            {"count", std::to_string(get_random_int(1, 23))},
-            {"flag",  (get_random_bool()) ? "true" : "false"},
-            {"ratio", std::to_string(get_random_float(0, 23))}
-    };
 
     auto all = find_all(fd);
     all.print();
